@@ -23,7 +23,7 @@ export async function upsertTaskEntries(userId: number, entries: TaskEntryInput[
     // Dates from JSON will be strings, so convert them
     const entryData = { ...data, date: new Date(data.date), userId };
 
-    if (id) {
+    if (id && typeof id === 'number') {
       // If an ID is provided, update the existing entry.
       // We also ensure the user owns this entry.
       return prisma.taskEntry.updateMany({

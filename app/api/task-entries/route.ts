@@ -10,7 +10,8 @@ export async function POST(request: Request) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const userId = (session.user as any).id;
+  const userIdString = (session.user as any).id;
+  const userId = parseInt(userIdString, 10);
   let entries;
 
   try {
@@ -39,7 +40,8 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const userId = (session.user as any).id;
+  const userIdString = (session.user as any).id;
+  const userId = parseInt(userIdString, 10);
   const { searchParams } = new URL(request.url);
   const dateParam = searchParams.get('date');
 
@@ -54,7 +56,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const entries = await getTaskEntriesForWeek(userId, date);
-    return NextResponse.json(entries);
+    const entriesAsNumbers = entries.map(entry => ({
+      ...entry,
+      hours: Number(entry.hours)
+    }));
+    return NextResponse.json(entriesAsNumbers);
   } catch (error) {
     console.error('GET /api/task-entries Error:', error);
     return new NextResponse('Internal Server Error', { status: 500 });

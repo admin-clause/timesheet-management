@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
 import {
   Table,
   TableHeader,
@@ -67,8 +68,7 @@ export function TimesheetForm() {
       const dateStr = formatDate(currentDate);
       const response = await fetch(`/api/task-entries?date=${dateStr}`);
       if (response.ok) {
-        const data = await response.json();
-        setTaskEntries(data.map((d: any) => ({ ...d, hours: Number(d.hours) || 0 })));
+        setTaskEntries(await response.json());
       }
       setIsLoading(false);
     };
@@ -129,19 +129,24 @@ export function TimesheetForm() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    // Filter out entries with 0 hours before saving
     const entriesToSave = taskEntries.filter(entry => entry.hours > 0 && entry.taskName && entry.projectId);
     
-    await fetch('/api/task-entries', {
+    const response = await fetch('/api/task-entries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(entriesToSave),
     });
 
+    if (response.ok) {
+      toast.success("Timesheet saved successfully!");
+    } else {
+      toast.error("Failed to save timesheet. Please try again.");
+    }
+
     // Refetch data after saving to get new IDs and confirm changes
     const dateStr = formatDate(currentDate);
-    const response = await fetch(`/api/task-entries?date=${dateStr}`);
-    if (response.ok) setTaskEntries(await response.json());
+    const refetchResponse = await fetch(`/api/task-entries?date=${dateStr}`);
+    if (refetchResponse.ok) setTaskEntries(await refetchResponse.json());
 
     setIsSaving(false);
   };

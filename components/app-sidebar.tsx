@@ -1,4 +1,5 @@
-import { Home, Inbox } from "lucide-react"
+import { Home, Inbox } from "lucide-react";
+import { getServerSession } from "next-auth";
 
 import {
     Sidebar,
@@ -9,7 +10,8 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 // Menu items.
 const items = [
@@ -17,16 +19,27 @@ const items = [
     title: "Timesheet",
     url: "/timesheet",
     icon: Home,
+    roles: ["ADMIN", "USER"],
   },
   {
     title: "Report",
     url: "/admin/reports",
     icon: Inbox,
+    roles: ["ADMIN"],
   },
+];
 
-]
+export async function AppSidebar() {
+  const session = await getServerSession(authOptions);
+  const userRole = (session?.user as any)?.role;
 
-export function AppSidebar() {
+  const filteredItems = items.filter((item) => {
+    if (!item.roles) {
+      return true;
+    }
+    return item.roles.includes(userRole);
+  });
+
   return (
     <Sidebar>
       <SidebarContent>
@@ -34,7 +47,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {filteredItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
@@ -49,5 +62,5 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
-  )
+  );
 }

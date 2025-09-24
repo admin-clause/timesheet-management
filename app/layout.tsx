@@ -1,7 +1,10 @@
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarProvider, SidebarTrigger, Sidebar, SidebarContent } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { NextAuthSessionProvider } from "./providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,9 +31,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
-        <Toaster />
-
+        <NextAuthSessionProvider>
+          <SidebarProvider>
+            <div className="flex min-h-screen">
+              <AppSidebar />
+              <main className="flex-1 p-4">
+                <SidebarTrigger />
+                {children}
+              </main>
+            </div>
+            <Toaster />
+          </SidebarProvider>
+        </NextAuthSessionProvider>
       </body>
     </html>
   );

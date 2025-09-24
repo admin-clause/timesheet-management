@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useMemo } from 'react';
 import {
   Table,
   TableHeader,
@@ -20,103 +21,134 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-// This will eventually come from the API
-const dummyProjects = [
-  { id: 1, name: 'Ethereal' },
-  { id: 2, name: 'Hava' },
-  { id: 3, name: 'Building Code' },
-];
+// --- Type Definitions ---
+type Project = {
+  id: number;
+  name: string;
+};
+
+type TaskEntry = {
+  id: number;
+  date: string; // Dates will be strings from the API
+  hours: number;
+  taskName: string;
+  projectId: number;
+  userId: number;
+};
+
+// --- Helper Functions ---
+const formatDate = (date: Date) => date.toISOString().split('T')[0];
+
+const getWeekDays = (date: Date) => {
+  const dayOfWeek = date.getDay();
+  const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(date);
+  monday.setDate(date.getDate() - distanceToMonday);
+
+  return Array.from({ length: 5 }).map((_, i) => {
+    const weekDay = new Date(monday);
+    weekDay.setDate(monday.getDate() + i);
+    return weekDay;
+  });
+};
 
 export function TimesheetForm() {
-  // Dummy data for static layout
-  const weekDates = ['Sep 22', 'Sep 23', 'Sep 24', 'Sep 25', 'Sep 26'];
-  const totalHours = [1.5, 8, 7.5, 0, 4];
-  const billableHours = 21;
+  // --- State Management ---
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [taskEntries, setTaskEntries] = useState<TaskEntry[]>([]);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [isLoading, setIsLoading] = useState(true);
+
+  const weekDays = useMemo(() => getWeekDays(currentDate), [currentDate]);
+
+  // --- Data Fetching ---
+  useEffect(() => {
+    // Fetch projects only once on component mount
+    const fetchProjects = async () => {
+      const response = await fetch('/api/projects');
+      if (response.ok) {
+        setProjects(await response.json());
+      }
+    };
+    fetchProjects();
+  }, []);
+
+  useEffect(() => {
+    // Fetch task entries whenever the week changes
+    const fetchTaskEntries = async () => {
+      setIsLoading(true);
+      const dateStr = formatDate(currentDate);
+      const response = await fetch(`/api/task-entries?date=${dateStr}`);
+      if (response.ok) {
+        setTaskEntries(await response.json());
+      }
+      setIsLoading(false);
+    };
+    fetchTaskEntries();
+  }, [currentDate]);
+
+  // --- Event Handlers ---
+  const handlePrevWeek = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(currentDate.getDate() - 7);
+    setCurrentDate(newDate);
+  };
+
+  const handleNextWeek = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(currentDate.getDate() + 7);
+    setCurrentDate(newDate);
+  };
+
+  // --- Render Logic ---
+  if (isLoading && projects.length === 0) {
+    return <p>Loading initial data...</p>;
+  }
 
   return (
     <div className="space-y-6">
+      {/* Week Navigation */}
+      <div className="flex justify-center items-center gap-4">
+        <Button onClick={handlePrevWeek}>Previous Week</Button>
+        <p className="text-lg font-medium">
+          Week of {weekDays[0].toLocaleDateString()} - {weekDays[4].toLocaleDateString()}
+        </p>
+        <Button onClick={handleNextWeek}>Next Week</Button>
+      </div>
+
       {/* Main Timesheet Table */}
       <Table>
         <TableHeader>
-          <TableRow><TableHead className="w-[200px]">Project</TableHead><TableHead>Task</TableHead><TableHead className="text-right">Monday ({weekDates[0]})</TableHead><TableHead className="text-right">Tuesday ({weekDates[1]})</TableHead><TableHead className="text-right">Wednesday ({weekDates[2]})</TableHead><TableHead className="text-right">Thursday ({weekDates[3]})</TableHead><TableHead className="text-right">Friday ({weekDates[4]})</TableHead><TableHead className="text-right font-bold">Billable Hours</TableHead><TableHead className="w-[50px]"></TableHead></TableRow>
+          <TableRow><TableHead className="w-[200px]">Project</TableHead><TableHead>Task</TableHead>{weekDays.map(day => (<TableHead key={day.toISOString()} className="text-right">{day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</TableHead>))}<TableHead className="text-right font-bold">Billable Hours</TableHead><TableHead className="w-[50px]"></TableHead></TableRow>
         </TableHeader>
         <TableBody>
+          {/* This part will be made dynamic in the next step */}
           <TableRow>
-            <TableCell>
-              <Select defaultValue="1">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {dummyProjects.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </TableCell>
-            <TableCell>
-              <Input type="text" placeholder="Task description" defaultValue="Frontend development" />
-            </TableCell>
-            <TableCell><Input className="text-right" type="number" defaultValue="1.5" /></TableCell>
-            <TableCell><Input className="text-right" type="number" defaultValue="8" /></TableCell>
-            <TableCell><Input className="text-right" type="number" defaultValue="4" /></TableCell>
-            <TableCell><Input className="text-right" type="number" /></TableCell>
-            <TableCell><Input className="text-right" type="number" /></TableCell>
-            <TableCell className="text-right font-medium">13.5</TableCell>
-            <TableCell><Button variant="ghost" size="icon">X</Button></TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell>
-              <Select defaultValue="2">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {dummyProjects.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </TableCell>
-            <TableCell>
-              <Input type="text" placeholder="Task description" defaultValue="API Integration" />
-            </TableCell>
-            <TableCell><Input className="text-right" type="number" /></TableCell>
-            <TableCell><Input className="text-right" type="number" /></TableCell>
-            <TableCell><Input className="text-right" type="number" defaultValue="3.5" /></TableCell>
-            <TableCell><Input className="text-right" type="number" /></TableCell>
-            <TableCell><Input className="text-right" type="number" defaultValue="4" /></TableCell>
-            <TableCell className="text-right font-medium">7.5</TableCell>
+            <TableCell>Project dropdown here</TableCell>
+            <TableCell>Task input here</TableCell>
+            <TableCell>Hours input</TableCell>
+            <TableCell>Hours input</TableCell>
+            <TableCell>Hours input</TableCell>
+            <TableCell>Hours input</TableCell>
+            <TableCell>Hours input</TableCell>
+            <TableCell className="text-right font-medium">0.0</TableCell>
             <TableCell><Button variant="ghost" size="icon">X</Button></TableCell>
           </TableRow>
         </TableBody>
-        <TableFooter>
-          <TableRow>
-            <TableCell colSpan={2} className="font-bold">Total Hours</TableCell>
-            {totalHours.map((h, i) => (
-              <TableCell key={i} className="text-right font-bold">{h > 0 ? h.toFixed(1) : '-'}</TableCell>
-            ))}
-            <TableCell className="text-right font-bold text-lg">{billableHours.toFixed(1)}</TableCell>
-            <TableCell></TableCell>
-          </TableRow>
-        </TableFooter>
+        {/* Footer and Summary will be updated later */}
       </Table>
       <Button>Add Row</Button>
 
       <div className="flex justify-between items-start gap-6">
-        {/* Project Summary */}
         <Card className="w-1/3">
           <CardHeader><CardTitle>Project Summary</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex justify-between"><p>Ethereal:</p> <p className="font-medium">13.5 hours</p></div>
-            <div className="flex justify-between"><p>Hava:</p> <p className="font-medium">7.5 hours</p></div>
+            {/* Summary will be dynamic */}
           </CardContent>
         </Card>
 
-        {/* Save Button */}
         <div className="flex flex-col items-end">
-          <p className="text-2xl font-bold">Total: {billableHours.toFixed(1)} hours</p>
-          <p className="text-muted-foreground">for week of Sep 22 - Sep 26</p>
+          <p className="text-2xl font-bold">Total: 0.0 hours</p>
           <Button size="lg" className="mt-4">Save Timesheet</Button>
         </div>
       </div>

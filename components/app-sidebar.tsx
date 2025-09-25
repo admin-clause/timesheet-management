@@ -2,14 +2,14 @@ import { Home, Inbox } from "lucide-react";
 import { getServerSession } from "next-auth";
 
 import {
-    Sidebar,
-    SidebarContent,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarGroupLabel,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { authOptions } from "@/lib/auth";
 
@@ -24,6 +24,12 @@ const items = [
   {
     title: "Report",
     url: "/admin/reports",
+    icon: Inbox,
+    roles: ["ADMIN"],
+  },
+  {
+    title: "Projects",
+    url: "/admin/projects",
     icon: Inbox,
     roles: ["ADMIN"],
   },

@@ -1,9 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { deleteTaskEntry } from '@/repositories/TaskEntryRepository';
+import { getServerSession } from 'next-auth/next';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
+// Define the interface for the dynamic route parameters
+interface RouteParams {
+  params: {
+    id: string; // Or whatever type your dynamic parameter is
+  };
+}
+
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   const session = await getServerSession(authOptions);
 
   if (!session || !session.user?.id) {
@@ -11,7 +18,7 @@ export async function DELETE(request: NextRequest, context: { params: { id: stri
   }
 
   const userId = session.user.id;
-  const taskEntryId = parseInt(context.params.id, 10);
+  const taskEntryId = parseInt(params.id, 10);
 
   if (isNaN(taskEntryId)) {
     return new NextResponse('Bad Request: Invalid task entry ID.', { status: 400 });

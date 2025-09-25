@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma'
 
 /**
  * Fetches all projects from the database, ordered by name.
@@ -9,13 +9,13 @@ export async function getAllProjects() {
   try {
     const projects = await prisma.project.findMany({
       orderBy: {
-        name: 'asc',
+        id: 'asc',
       },
-    });
-    return projects;
+    })
+    return projects
   } catch (error) {
-    console.error('Database Error fetching projects:', error);
-    throw new Error('Failed to fetch projects.');
+    console.error('Database Error fetching projects:', error)
+    throw new Error('Failed to fetch projects.')
   }
 }
 
@@ -31,14 +31,13 @@ export async function createProject(name: string) {
       data: {
         name,
       },
-    });
-    return newProject;
+    })
+    return newProject
   } catch (error) {
-    console.error('Database Error creating project:', error);
-    throw new Error('Failed to create project.');
+    console.error('Database Error creating project:', error)
+    throw new Error('Failed to create project.')
   }
 }
-
 
 /**
  * Updates the name of a specific project.
@@ -56,11 +55,11 @@ export async function updateProject(projectId: number, newName: string) {
       data: {
         name: newName,
       },
-    });
-    return updatedProject;
+    })
+    return updatedProject
   } catch (error) {
-    console.error('Database Error updating project:', error);
-    throw new Error('Failed to update project.');
+    console.error('Database Error updating project:', error)
+    throw new Error('Failed to update project.')
   }
 }
 
@@ -76,10 +75,10 @@ export async function deleteProject(projectId: number) {
       where: {
         id: projectId,
       },
-    });
-    return deletedProject;
+    })
+    return deletedProject
   } catch (error) {
-    console.error('Database Error deleting project:', error);
-    throw new Error('Failed to delete project.');
+    console.error('Database Error deleting project:', error)
+    throw new Error('Failed to delete project.')
   }
 }

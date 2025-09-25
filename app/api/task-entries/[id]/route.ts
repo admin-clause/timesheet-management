@@ -1,13 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { deleteTaskEntry } from '@/repositories/TaskEntryRepository';
 
-interface RouteParams {
-  params: { id: string };
-}
-
-export async function DELETE(request: Request, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
 
   if (!session || !session.user?.id) {
@@ -22,7 +18,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   }
 
   try {
-    const result = await deleteTaskEntry(userId, taskEntryId);
+    const result = await deleteTaskEntry(Number(userId), taskEntryId);
 
     if (result.count === 0) {
       // Nothing was deleted. This could be because the entry does not exist,

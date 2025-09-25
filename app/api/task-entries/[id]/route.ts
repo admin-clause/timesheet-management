@@ -3,14 +3,10 @@ import { deleteTaskEntry } from '@/repositories/TaskEntryRepository';
 import { getServerSession } from 'next-auth/next';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Define the interface for the dynamic route parameters
-interface RouteParams {
-  params: {
-    id: string; // Or whatever type your dynamic parameter is
-  };
-}
-
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   const session = await getServerSession(authOptions);
 
   if (!session || !session.user?.id) {
@@ -28,15 +24,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const result = await deleteTaskEntry(Number(userId), taskEntryId);
 
     if (result.count === 0) {
-      // Nothing was deleted. This could be because the entry does not exist,
-      // or the user does not have permission to delete it. 
-      // We return 404 to not leak information.
       return new NextResponse('Not Found', { status: 404 });
     }
 
-    // Standard success response for DELETE is 204 No Content.
     return new NextResponse(null, { status: 204 });
-
   } catch (error) {
     console.error(`DELETE /api/task-entries/${taskEntryId} Error:`, error);
     return new NextResponse('Internal Server Error', { status: 500 });

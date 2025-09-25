@@ -3,39 +3,40 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 export async function middleware(req: NextRequest) {
-  const { nextUrl } = req;
-  // The secret is needed to decrypt the JWT.
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  const isLoggedIn = !!token;
+  const { pathname } = req.nextUrl;
 
-  const isAuthPage = nextUrl.pathname.startsWith('/auth/signin');
-  const isHomePage = nextUrl.pathname === '/';
-  const isAppPage = nextUrl.pathname.startsWith('/timesheet'); // Any page inside the app
+  // Define public paths that don't require authentication
+  const publicPaths = ['/auth/signin'];
 
-  if (isLoggedIn) {
-    // If a logged-in user tries to access the home or sign-in page,
-    // redirect them to the timesheet page.
-    if (isAuthPage || isHomePage) {
+  // Check if the current path is public
+  const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
+
+  // --- Logic for logged-in users ---
+  if (token) {
+    // If a logged-in user tries to access a public page, redirect them to the app
+    if (isPublicPath) {
       return NextResponse.redirect(new URL('/timesheet', req.url));
     }
-  } else {
-    // If a non-logged-in user tries to access a protected app page or the home page,
-    // redirect them to the sign-in page.
-    if (isAppPage || isHomePage) {
+  } 
+  // --- Logic for logged-out users ---
+  else {
+    // If a logged-out user tries to access a protected page (i.e., not a public page)
+    if (!isPublicPath) {
+      // Redirect them to the sign-in page, saving the page they were trying to access
       const signInUrl = new URL('/auth/signin', req.url);
-      signInUrl.searchParams.set('callbackUrl', nextUrl.pathname);
+      signInUrl.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(signInUrl);
     }
   }
 
-  // Allow the request to proceed if no redirection is needed.
+  // Allow the request to proceed by default
   return NextResponse.next();
 }
 
-// Optional: Use a matcher to specify which paths the middleware should run on.
+// The matcher remains the same, running the middleware on all pages except API/static files
 export const config = {
   matcher: [
-    // Match all paths except for API routes, static files, and image optimization files.
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };

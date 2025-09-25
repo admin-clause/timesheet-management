@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { deleteTaskEntry } from '@/repositories/TaskEntryRepository';
 
 export async function DELETE(request: NextRequest, context: { params: { id: string } }) {

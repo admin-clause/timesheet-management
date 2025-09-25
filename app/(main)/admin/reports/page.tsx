@@ -1,6 +1,6 @@
 import { type Session } from 'next-auth';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ReportGenerator } from '@/components/report-generator';
 

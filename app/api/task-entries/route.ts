@@ -1,4 +1,4 @@
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { getTaskEntriesForWeek, upsertTaskEntries, type TaskEntryInput } from '@/repositories/TaskEntryRepository';
 import { TaskEntry } from '@prisma/client';
 import { getServerSession } from 'next-auth/next';

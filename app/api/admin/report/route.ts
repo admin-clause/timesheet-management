@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { type Session } from 'next-auth';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 const isAdmin = (session: Session | null): boolean => {

@@ -21,11 +21,11 @@ export async function GET() {
     const users = await getAllUsers();
     // Never return passwords, even hashed ones, in an API response
     const usersWithoutPasswords = users.map(user => {
-      const { password, ...userWithoutPassword } = user;
+      const { password: _, ...userWithoutPassword } = user;
       return userWithoutPassword;
     });
     return NextResponse.json(usersWithoutPasswords);
-  } catch (error) {
+  } catch {
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

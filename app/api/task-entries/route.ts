@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     if (!Array.isArray(entries)) {
       return new NextResponse('Bad Request: Expected an array of task entries.', { status: 400 });
     }
-  } catch (error) {
+  } catch {
     return new NextResponse('Bad Request: Invalid JSON format.', { status: 400 });
   }
 

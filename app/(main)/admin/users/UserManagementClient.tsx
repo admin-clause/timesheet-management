@@ -79,7 +79,7 @@ export function UserManagementClient() {
     const url = isUpdating ? `/api/users/${editingUser.id}` : '/api/users';
     const method = isUpdating ? 'PUT' : 'POST';
 
-    const body: any = { name, email, role };
+    const body: { name: string; email: string; role: Role; password?: string } = { name, email, role };
     if (!isUpdating) {
       body.password = password;
     }
@@ -210,7 +210,7 @@ export function UserManagementClient() {
           <DialogHeader>
             <DialogTitle>Are you sure?</DialogTitle>
           </DialogHeader>
-          <p>You are about to delete the user "<strong>{editingUser?.name || editingUser?.email}</strong>".</p>
+          <p>You are about to delete the user &quot;<strong>{editingUser?.name || editingUser?.email}</strong>&quot;.</p>
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
             <Button variant="destructive" onClick={handleConfirmDelete}>Confirm Delete</Button>

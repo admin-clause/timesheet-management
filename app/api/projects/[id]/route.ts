@@ -50,7 +50,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await deleteProject(projectId);
     return new NextResponse(null, { status: 204 });
 
-  } catch (error) {
+  } catch {
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

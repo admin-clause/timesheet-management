@@ -1,17 +1,18 @@
-import { Home, Inbox } from "lucide-react";
+import { Home, Inbox, Settings } from "lucide-react";
 import { getServerSession } from "next-auth";
-
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
+    Sidebar,
+    SidebarContent,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { authOptions } from "@/lib/auth";
+import { LogoutButton } from "./ui/logout-button";
+import { Separator } from "./ui/separator";
 
 // Menu items.
 const items = [
@@ -33,6 +34,12 @@ const items = [
     icon: Inbox,
     roles: ["ADMIN"],
   },
+  {
+    title: "Users",
+    url: "/admin/users",
+    icon: Inbox, // Replace with a more appropriate icon if available
+    roles: ["ADMIN"],
+  },
 ];
 
 export async function AppSidebar() {
@@ -52,6 +59,7 @@ export async function AppSidebar() {
   return (
     <Sidebar>
       <SidebarContent>
+        {/* Application Menu */}
         <SidebarGroup>
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -70,6 +78,32 @@ export async function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      {/* Account Section */}
+      <div className="mt-auto">
+        <Separator />
+        <SidebarGroup>
+            <SidebarGroupLabel>Account</SidebarGroupLabel>
+            <SidebarGroupContent>
+                <div className="px-3 py-2 text-sm font-medium">
+                    <p>{session?.user?.name || session?.user?.email}</p>
+                </div>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                            <a href="/account/password">
+                                <Settings />
+                                <span>Change Password</span>
+                            </a>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <LogoutButton />
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarGroupContent>
+        </SidebarGroup>
+      </div>
     </Sidebar>
   );
 }

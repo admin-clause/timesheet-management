@@ -6,9 +6,10 @@ const prisma = new PrismaClient()
 async function main() {
   console.log(`Start seeding ...`)
 
-  console.log('Clear existing projects and reset sequence')
-  // TRUNCATE if you want to clearn it up
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE "Project" RESTART IDENTITY CASCADE;')
+  console.log('Clear existing projects and reset sequence');
+  // Truncate the table to clear all data and reset the ID sequence.
+  // The CASCADE option also removes related records in other tables (e.g., TaskEntry).
+  await prisma.$executeRawUnsafe('TRUNCATE TABLE "Project" RESTART IDENTITY CASCADE;');
 
   // Create projects
   await prisma.project.createMany({
@@ -18,8 +19,9 @@ async function main() {
       { name: 'Hava' },
       { name: 'Building Code' },
     ],
+    // skipDuplicates is not strictly necessary after TRUNCATE, but left for safety.
     skipDuplicates: true,
-  })
+  });
 
   // Create users
   const adminPassword = await bcrypt.hash('admin', 10)

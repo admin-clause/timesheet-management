@@ -23,7 +23,7 @@ import {
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-// Projectの型定義
+// Project type definition
 type Project = {
   id: number
   name: string

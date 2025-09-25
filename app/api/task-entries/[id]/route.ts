@@ -10,11 +10,11 @@ interface RouteParams {
 export async function DELETE(request: Request, { params }: RouteParams) {
   const session = await getServerSession(authOptions);
 
-  if (!session || !(session.user as any)?.id) {
+  if (!session || !session.user?.id) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const userId = (session.user as any).id;
+  const userId = session.user.id;
   const taskEntryId = parseInt(params.id, 10);
 
   if (isNaN(taskEntryId)) {

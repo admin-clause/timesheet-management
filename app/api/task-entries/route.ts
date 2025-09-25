@@ -6,11 +6,11 @@ import { upsertTaskEntries, getTaskEntriesForWeek } from '@/repositories/TaskEnt
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
 
-  if (!session || !(session.user as any)?.id) {
+  if (!session || !session.user?.id) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const userIdString = (session.user as any).id;
+  const userIdString = session.user.id;
   const userId = parseInt(userIdString, 10);
   let entries;
 
@@ -36,11 +36,11 @@ export async function POST(request: Request) {
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
-  if (!session || !(session.user as any)?.id) {
+  if (!session || !session.user?.id) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const userIdString = (session.user as any).id;
+  const userIdString = session.user.id;
   const userId = parseInt(userIdString, 10);
   const { searchParams } = new URL(request.url);
   const dateParam = searchParams.get('date');

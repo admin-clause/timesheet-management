@@ -6,6 +6,33 @@ import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell, TableFooter } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 
+// --- Type Definitions for Report Data ---
+interface Project {
+  id: number;
+  name: string;
+}
+
+interface UserReport {
+  name: string;
+  totalHours: number;
+  hoursByProject: { [key: string]: number };
+}
+
+interface PivotData {
+  projects: Project[];
+  users: UserReport[];
+  projectTotals: { [key: string]: number };
+  grandTotal: number;
+}
+
+interface ReportData {
+  reportPeriod: {
+    year: number;
+    month: number;
+  };
+  pivotData: PivotData;
+}
+
 // Helper to get the current month in YYYY-MM format
 const getCurrentMonthString = () => {
   const now = new Date();
@@ -14,7 +41,7 @@ const getCurrentMonthString = () => {
 
 export function ReportGenerator() {
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonthString());
-  const [reportData, setReportData] = useState<any | null>(null);
+  const [reportData, setReportData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFetchReport = async () => {
@@ -65,17 +92,17 @@ export function ReportGenerator() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="min-w-[150px]">User</TableHead>
-                  {reportData.pivotData.projects.map((project: any) => (
+                  {reportData.pivotData.projects.map((project) => (
                     <TableHead key={project.id} className="text-right">{project.name}</TableHead>
                   ))}
                   <TableHead className="text-right font-bold">User Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reportData.pivotData.users.map((user: any) => (
+                {reportData.pivotData.users.map((user) => (
                   <TableRow key={user.name}>
                     <TableCell className="font-medium">{user.name}</TableCell>
-                    {reportData.pivotData.projects.map((project: any) => (
+                    {reportData.pivotData.projects.map((project) => (
                       <TableCell key={project.id} className="text-right">
                         {(user.hoursByProject[project.id] || 0).toFixed(1)}
                       </TableCell>
@@ -87,7 +114,7 @@ export function ReportGenerator() {
               <TableFooter>
                 <TableRow>
                   <TableCell className="font-bold">Project Total</TableCell>
-                  {reportData.pivotData.projects.map((project: any) => (
+                  {reportData.pivotData.projects.map((project) => (
                     <TableCell key={project.id} className="text-right font-bold">
                       {(reportData.pivotData.projectTotals[project.id] || 0).toFixed(1)}
                     </TableCell>

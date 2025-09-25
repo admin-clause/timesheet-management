@@ -92,7 +92,7 @@ export function TimesheetForm() {
     });
   }
 
-  const handleUpdateEntry = (id: number | string, field: keyof TaskEntry, value: any) => {
+  const handleUpdateEntry = (id: number | string, field: keyof TaskEntry, value: string | number) => {
     setTaskEntries(currentEntries =>
       currentEntries.map(entry => (entry.id === id ? { ...entry, [field]: value } : entry))
     );

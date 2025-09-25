@@ -1,10 +1,10 @@
-import { getServerSession } from 'next-auth/next';
+import { Session, getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ReportGenerator } from '@/components/report-generator';
 
 // Helper to check for admin role from the session object
-const isAdmin = (session: any): boolean => {
+const isAdmin = (session: Session | null): boolean => {
   return session?.user?.role === 'ADMIN';
 };
 

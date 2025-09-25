@@ -31,7 +31,7 @@ const items = [
 
 export async function AppSidebar() {
   const session = await getServerSession(authOptions);
-  const userRole = (session?.user as any)?.role;
+  const userRole = session?.user?.role;
 
   const filteredItems = items.filter((item) => {
     if (!item.roles) {

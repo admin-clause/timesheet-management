@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { Session, getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 
-const isAdmin = (session: any): boolean => {
+const isAdmin = (session: Session | null): boolean => {
   return session?.user?.role === 'ADMIN';
 };
 

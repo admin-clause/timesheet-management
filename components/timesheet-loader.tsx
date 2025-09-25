@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { TimesheetSkeleton } from './timesheet-skeleton';
 
 // Dynamically import the TimesheetForm component with SSR turned off.
 // This is done inside a client component wrapper to comply with Next.js rules.
@@ -8,7 +9,7 @@ const TimesheetForm = dynamic(
   () => import('@/components/timesheet-form').then((mod) => mod.TimesheetForm),
   {
     ssr: false,
-    loading: () => <p className="p-4">Loading timesheet...</p>,
+    loading: () => <TimesheetSkeleton />,
   }
 );
 

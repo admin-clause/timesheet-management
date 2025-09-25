@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { deleteTaskEntry } from '@/repositories/TaskEntryRepository';
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
 
   if (!session || !session.user?.id) {
@@ -11,7 +11,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   }
 
   const userId = session.user.id;
-  const taskEntryId = parseInt(params.id, 10);
+  const taskEntryId = parseInt(context.params.id, 10);
 
   if (isNaN(taskEntryId)) {
     return new NextResponse('Bad Request: Invalid task entry ID.', { status: 400 });

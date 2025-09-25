@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { upsertTaskEntries, getTaskEntriesForWeek } from '@/repositories/TaskEntryRepository';
+import { getTaskEntriesForWeek, upsertTaskEntries, type TaskEntryInput } from '@/repositories/TaskEntryRepository';
+import { TaskEntry } from '@prisma/client';
+import { getServerSession } from 'next-auth/next';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
 
   const userIdString = session.user.id;
   const userId = parseInt(userIdString, 10);
-  let entries;
+  let entries: TaskEntryInput[];
 
   try {
     entries = await request.json();
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const entries = await getTaskEntriesForWeek(userId, date);
-    const entriesAsNumbers = entries.map(entry => ({
+    const entriesAsNumbers = entries.map((entry: TaskEntry) => ({
       ...entry,
       hours: Number(entry.hours)
     }));

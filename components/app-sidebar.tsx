@@ -37,6 +37,9 @@ export async function AppSidebar() {
     if (!item.roles) {
       return true;
     }
+    if (!userRole) {
+      return false;
+    }
     return item.roles.includes(userRole);
   });
 

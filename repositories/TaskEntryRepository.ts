@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 
 // Define the type for the input data for a single task entry
 // It can optionally have an id if it's an existing entry.
-type TaskEntryInput = {
+export type TaskEntryInput = {
   id?: number;
   date: Date;
   hours: number;

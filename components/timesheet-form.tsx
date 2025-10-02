@@ -119,10 +119,14 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
   }
 
   const handleHoursChange = (id: number | string, day: Date, hours: number) => {
+    if (Number.isNaN(hours)) {
+      return
+    }
+    const boundedHours = Math.min(Math.max(hours, 0), 8)
     setTaskEntries(currentEntries =>
       currentEntries.map(entry => {
         if (entry.id === id) {
-          return { ...entry, date: formatDate(day), hours: hours }
+          return { ...entry, date: formatDate(day), hours: boundedHours }
         }
         return entry
       })
@@ -267,12 +271,20 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
                 {weekDays.map(day => (
                   <TableCell key={formatDate(day)} className="w-16">
                     <Input
-                      className="text-right"
+                      className="text-right pr-1 appearance-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                       type="number"
+                      inputMode="decimal"
+                      min={0}
+                      max={8}
+                      step={0.25}
                       value={
                         formatDate(new Date(entry.date)) === formatDate(day) ? entry.hours : ''
                       }
-                      onChange={e => handleHoursChange(entry.id, day, Number(e.target.value))}
+                      onChange={e => {
+                        const raw = e.target.value
+                        const parsed = raw === '' ? 0 : parseFloat(raw)
+                        handleHoursChange(entry.id, day, parsed)
+                      }}
                     />
                   </TableCell>
                 ))}

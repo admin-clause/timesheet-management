@@ -21,30 +21,35 @@ const items = [
     url: "/timesheet",
     icon: Clock,
     roles: ["ADMIN", "USER"],
+    order: 1,
   },
   {
     title: "Team Timesheets",
     url: "/admin/timesheets",
     icon: ClipboardList,
     roles: ["ADMIN"],
+    order: 2,
   },
   {
     title: "Report",
     url: "/admin/reports",
     icon: BarChart3,
     roles: ["ADMIN"],
+    order: 3,
   },
   {
     title: "Projects",
     url: "/admin/projects",
     icon: Briefcase,
     roles: ["ADMIN"],
+    order: 4,
   },
   {
     title: "Users",
     url: "/admin/users",
     icon: Users,
     roles: ["ADMIN"],
+    order: 5,
   },
 ];
 
@@ -52,15 +57,17 @@ export async function AppSidebar() {
   const session = await getServerSession(authOptions);
   const userRole = session?.user?.role;
 
-  const filteredItems = items.filter((item) => {
-    if (!item.roles) {
-      return true;
-    }
-    if (!userRole) {
-      return false;
-    }
-    return item.roles.includes(userRole);
-  });
+  const filteredItems = items
+    .filter((item) => {
+      if (!item.roles) {
+        return true;
+      }
+      if (!userRole) {
+        return false;
+      }
+      return item.roles.includes(userRole);
+    })
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   return (
     <Sidebar>

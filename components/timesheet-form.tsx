@@ -1,5 +1,6 @@
 'use client'
 
+import { TimesheetTableSkeleton } from '@/components/timesheet-table-skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -19,8 +20,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { TimesheetTableSkeleton } from '@/components/timesheet-table-skeleton'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -231,11 +230,11 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
               <TableHead className="w-[200px]">Project</TableHead>
               <TableHead className="w-[280px]">Task</TableHead>
               {weekDays.map(day => (
-                <TableHead key={day.toISOString()} className="w-14 text-right">
+                <TableHead key={day.toISOString()} className="w-16 text-right">
                   {day.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}
                 </TableHead>
               ))}
-              <TableHead className="w-[140px] text-right font-bold">Total</TableHead>
+              <TableHead className="w-[90px] text-left font-bold">Total</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -266,7 +265,7 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
                   />
                 </TableCell>
                 {weekDays.map(day => (
-                  <TableCell key={formatDate(day)} className="w-14">
+                  <TableCell key={formatDate(day)} className="w-16">
                     <Input
                       className="text-right"
                       type="number"
@@ -277,7 +276,7 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
                     />
                   </TableCell>
                 ))}
-                <TableCell className="w-[140px]">
+                <TableCell className="w-[90px]">
                   <div className="flex items-center justify-end gap-2">
                     <span className="font-medium">{entry.hours.toFixed(1)}</span>
                     <Button
@@ -298,11 +297,11 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
                 Total Hours
               </TableCell>
               {columnTotals.map((total, i) => (
-                <TableCell key={i} className="w-14 text-right font-bold">
+                <TableCell key={i} className="w-16 text-right font-bold">
                   {total > 0 ? total.toFixed(1) : '-'}
                 </TableCell>
               ))}
-              <TableCell className="w-[140px] text-right font-bold text-lg">
+              <TableCell className="w-[90px] text-right font-bold text-lg">
                 {grandTotal.toFixed(1)}
               </TableCell>
             </TableRow>

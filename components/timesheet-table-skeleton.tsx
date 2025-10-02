@@ -19,12 +19,12 @@ export function TimesheetTableSkeleton() {
           <TableHead className="w-[200px]"><Skeleton className="h-5 w-24" /></TableHead>
           <TableHead className="w-[280px]"><Skeleton className="h-5 w-32" /></TableHead>
           {weekdaySkeletons.map(label => (
-            <TableHead key={label} className="w-14 text-right">
+            <TableHead key={label} className="w-16 text-right">
               <Skeleton className="h-5 w-12" />
             </TableHead>
           ))}
-          <TableHead className="w-[140px] text-right">
-            <Skeleton className="h-5 w-24" />
+          <TableHead className="w-[90px] text-right">
+            <Skeleton className="h-5 w-20" />
           </TableHead>
         </TableRow>
       </TableHeader>
@@ -38,11 +38,11 @@ export function TimesheetTableSkeleton() {
               <Skeleton className="h-10 w-full" />
             </TableCell>
             {weekdaySkeletons.map(label => (
-              <TableCell key={label} className="w-14">
+              <TableCell key={label} className="w-16">
                 <Skeleton className="h-10 w-full" />
               </TableCell>
             ))}
-            <TableCell className="w-[140px]">
+            <TableCell className="w-[90px]">
               <div className="flex items-center justify-end gap-2">
                 <Skeleton className="h-6 w-12" />
                 <Skeleton className="h-10 w-10" />
@@ -57,11 +57,11 @@ export function TimesheetTableSkeleton() {
             <Skeleton className="h-5 w-28" />
           </TableCell>
           {weekdaySkeletons.map(label => (
-            <TableCell key={label} className="w-14 text-right">
+            <TableCell key={label} className="w-16 text-right">
               <Skeleton className="h-5 w-10" />
             </TableCell>
           ))}
-          <TableCell className="w-[140px] text-right">
+          <TableCell className="w-[90px] text-right">
             <Skeleton className="h-6 w-16" />
           </TableCell>
         </TableRow>

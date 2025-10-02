@@ -47,7 +47,11 @@ const getWeekDays = (date: Date) => {
   });
 };
 
-export function TimesheetForm() {
+export type TimesheetFormProps = {
+  targetUserId?: number;
+};
+
+export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
   // --- State Management ---
   const [projects, setProjects] = useState<Project[]>([]);
   const [taskEntries, setTaskEntries] = useState<TaskEntry[]>([]);
@@ -65,15 +69,20 @@ export function TimesheetForm() {
   useEffect(() => {
     const fetchTaskEntries = async () => {
       setIsLoading(true);
+      setTaskEntries([]);
       const dateStr = formatDate(currentDate);
-      const response = await fetch(`/api/task-entries?date=${dateStr}`);
+      const params = new URLSearchParams({ date: dateStr });
+      if (typeof targetUserId === 'number') {
+        params.append('userId', targetUserId.toString());
+      }
+      const response = await fetch(`/api/task-entries?${params.toString()}`);
       if (response.ok) {
         setTaskEntries(await response.json());
       }
       setIsLoading(false);
     };
     fetchTaskEntries();
-  }, [currentDate]);
+  }, [currentDate, targetUserId]);
 
   // --- Event Handlers ---
   function handlePrevWeek() {
@@ -123,29 +132,45 @@ export function TimesheetForm() {
   const handleDeleteRow = async (id: number | string) => {
     setTaskEntries(current => current.filter(entry => entry.id !== id));
     if (typeof id === 'number') { // Only call API for existing entries
-      await fetch(`/api/task-entries/${id}`, { method: 'DELETE' });
+      const params = new URLSearchParams();
+      if (typeof targetUserId === 'number') {
+        params.append('userId', targetUserId.toString());
+      }
+      const url = `/api/task-entries/${id}${params.toString() ? `?${params.toString()}` : ''}`;
+      await fetch(url, { method: 'DELETE' });
     }
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     const entriesToSave = taskEntries.filter(entry => entry.hours > 0 && entry.taskName && entry.projectId);
-    
-    const response = await fetch('/api/task-entries', {
+    const params = new URLSearchParams();
+    if (typeof targetUserId === 'number') {
+      params.append('userId', targetUserId.toString());
+    }
+
+    const response = await fetch(`/api/task-entries${params.toString() ? `?${params.toString()}` : ''}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(entriesToSave),
     });
 
     if (response.ok) {
-      toast.success("Timesheet saved successfully!");
+      const message = typeof targetUserId === 'number'
+        ? 'Timesheet saved for selected user!'
+        : 'Timesheet saved successfully!';
+      toast.success(message);
     } else {
-      toast.error("Failed to save timesheet. Please try again.");
+      toast.error('Failed to save timesheet. Please try again.');
     }
 
     // Refetch data after saving to get new IDs and confirm changes
     const dateStr = formatDate(currentDate);
-    const refetchResponse = await fetch(`/api/task-entries?date=${dateStr}`);
+    const refetchParams = new URLSearchParams({ date: dateStr });
+    if (typeof targetUserId === 'number') {
+      refetchParams.append('userId', targetUserId.toString());
+    }
+    const refetchResponse = await fetch(`/api/task-entries?${refetchParams.toString()}`);
     if (refetchResponse.ok) setTaskEntries(await refetchResponse.json());
 
     setIsSaving(false);

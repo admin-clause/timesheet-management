@@ -1,4 +1,4 @@
-import { Clock, BarChart3, Briefcase, Users, KeyRound } from "lucide-react";
+import { Clock, BarChart3, Briefcase, Users, KeyRound, ClipboardList } from "lucide-react";
 import { getServerSession } from "next-auth";
 import {
     Sidebar,
@@ -21,6 +21,12 @@ const items = [
     url: "/timesheet",
     icon: Clock,
     roles: ["ADMIN", "USER"],
+  },
+  {
+    title: "Team Timesheets",
+    url: "/admin/timesheets",
+    icon: ClipboardList,
+    roles: ["ADMIN"],
   },
   {
     title: "Report",

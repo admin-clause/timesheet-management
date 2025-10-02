@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 // --- Type Definitions for Report Data ---
 interface Project {
@@ -52,11 +52,11 @@ export function ReportGenerator() {
   const [reportData, setReportData] = useState<ReportData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleFetchReport = async () => {
+  const fetchReportForMonth = useCallback(async (month: string) => {
     setIsLoading(true)
     setReportData(null)
     try {
-      const response = await fetch(`/api/admin/report?month=${selectedMonth}`)
+      const response = await fetch(`/api/admin/report?month=${month}`)
       if (response.ok) {
         setReportData(await response.json())
       } else {
@@ -66,9 +66,14 @@ export function ReportGenerator() {
     } catch (error) {
       console.error('Failed to fetch report:', error)
       alert('An unexpected error occurred.')
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
-  }
+  }, [])
+
+  useEffect(() => {
+    void fetchReportForMonth(selectedMonth)
+  }, [fetchReportForMonth, selectedMonth])
 
   return (
     <div className="space-y-6">
@@ -85,8 +90,8 @@ export function ReportGenerator() {
             className="w-[200px]"
           />
         </div>
-        <Button onClick={handleFetchReport} disabled={isLoading}>
-          {isLoading ? 'Generating...' : 'Generate Report'}
+        <Button onClick={() => fetchReportForMonth(selectedMonth)} disabled={isLoading}>
+          {isLoading ? 'Generating...' : 'Refresh Report'}
         </Button>
 
         {reportData && (

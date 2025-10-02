@@ -1,4 +1,4 @@
-import { Home, Inbox, Settings } from "lucide-react";
+import { Clock, BarChart3, Briefcase, Users, KeyRound } from "lucide-react";
 import { getServerSession } from "next-auth";
 import {
     Sidebar,
@@ -19,25 +19,25 @@ const items = [
   {
     title: "Timesheet",
     url: "/timesheet",
-    icon: Home,
+    icon: Clock,
     roles: ["ADMIN", "USER"],
   },
   {
     title: "Report",
     url: "/admin/reports",
-    icon: Inbox,
+    icon: BarChart3,
     roles: ["ADMIN"],
   },
   {
     title: "Projects",
     url: "/admin/projects",
-    icon: Inbox,
+    icon: Briefcase,
     roles: ["ADMIN"],
   },
   {
     title: "Users",
     url: "/admin/users",
-    icon: Inbox, // Replace with a more appropriate icon if available
+    icon: Users,
     roles: ["ADMIN"],
   },
 ];
@@ -92,7 +92,7 @@ export async function AppSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild>
                             <a href="/account/password">
-                                <Settings />
+                                <KeyRound />
                                 <span>Change Password</span>
                             </a>
                         </SidebarMenuButton>

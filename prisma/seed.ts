@@ -1,4 +1,4 @@
-import { LeaveType, Prisma, PrismaClient, Role } from '@prisma/client'
+import { LeaveRequestType, LeaveType, Prisma, PrismaClient, Role, TimeOffEntryKind } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
@@ -12,12 +12,12 @@ function subtractYears(date: Date, years: number) {
 async function main() {
   console.log(`Start seeding ...`)
 
-  console.log('Clear existing projects and reset sequence');
-  // Truncate the table to clear all data and reset the ID sequence.
-  // The CASCADE option also removes related records in other tables (e.g., TaskEntry).
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE "Project" RESTART IDENTITY CASCADE;');
+  console.log('Clearing tables');
+  await prisma.$executeRawUnsafe('TRUNCATE TABLE "TimeOffTransaction" RESTART IDENTITY CASCADE;')
+  await prisma.$executeRawUnsafe('TRUNCATE TABLE "TimeOffBalance" RESTART IDENTITY CASCADE;')
+  await prisma.$executeRawUnsafe('TRUNCATE TABLE "Project" RESTART IDENTITY CASCADE;')
+  await prisma.$executeRawUnsafe('TRUNCATE TABLE "User" RESTART IDENTITY CASCADE;')
 
-  // Create projects
   await prisma.project.createMany({
     data: [
       { name: 'Clause Technology' },
@@ -25,15 +25,11 @@ async function main() {
       { name: 'Hava' },
       { name: 'Building Code' },
     ],
-    // skipDuplicates is not strictly necessary after TRUNCATE, but left for safety.
-    skipDuplicates: true,
-  });
+  })
 
-  // Create users
   const adminPassword = await bcrypt.hash('admin', 10)
   const userPassword = await bcrypt.hash('123456', 10)
 
-  // Admin Users from an array
   const adminUsers = [
     { name: 'Sogol', email: 'sogol@clause.tech' },
     { name: 'Candice', email: 'candice@clause.tech' },
@@ -41,12 +37,8 @@ async function main() {
   ]
   const adminStartDate = subtractYears(new Date(), 2)
   for (const admin of adminUsers) {
-    await prisma.user.upsert({
-      where: { email: admin.email },
-      update: {
-        employmentStartDate: adminStartDate,
-      },
-      create: {
+    await prisma.user.create({
+      data: {
         email: admin.email,
         name: admin.name,
         password: adminPassword,
@@ -56,18 +48,13 @@ async function main() {
     })
   }
 
-  // General Users from an array
   const generalUserNames = ['edword', 'ben', 'sumin', 'han', 'douglas', 'shamit']
   const generalStartDate = subtractYears(new Date(), 1)
   for (const name of generalUserNames) {
-    await prisma.user.upsert({
-      where: { email: `${name}@clause.tech` },
-      update: {
-        employmentStartDate: generalStartDate,
-      },
-      create: {
+    await prisma.user.create({
+      data: {
         email: `${name}@clause.tech`,
-        name: name.charAt(0).toUpperCase() + name.slice(1), // Capitalize first letter
+        name: name.charAt(0).toUpperCase() + name.slice(1),
         password: userPassword,
         role: Role.USER,
         employmentStartDate: generalStartDate,
@@ -76,31 +63,41 @@ async function main() {
   }
 
   const users = await prisma.user.findMany({ select: { id: true } })
-  const leaveTypes: LeaveType[] = [
-    LeaveType.SICK,
-    LeaveType.VACATION,
-    LeaveType.BEREAVEMENT,
-    LeaveType.UNPAID,
-    LeaveType.MILITARY,
-    LeaveType.JURY_DUTY,
-    LeaveType.PARENTAL,
-    LeaveType.OTHER,
+  const leaveTypes: LeaveType[] = [LeaveType.SICK, LeaveType.VACATION]
+  const requestedTypes: LeaveRequestType[] = [
+    LeaveRequestType.SICK,
+    LeaveRequestType.VACATION,
+    LeaveRequestType.BEREAVEMENT,
+    LeaveRequestType.UNPAID,
+    LeaveRequestType.MILITARY,
+    LeaveRequestType.JURY_DUTY,
+    LeaveRequestType.PARENTAL,
+    LeaveRequestType.OTHER,
   ]
 
   for (const user of users) {
     for (const type of leaveTypes) {
-      await prisma.timeOffBalance.upsert({
-        where: {
-          userId_type: {
-            userId: user.id,
-            type,
-          },
-        },
-        update: {},
-        create: {
+      await prisma.timeOffBalance.create({
+        data: {
           userId: user.id,
           type,
           balance: new Prisma.Decimal(0),
+        },
+      })
+    }
+  }
+
+  for (const user of users) {
+    for (const requestedType of requestedTypes) {
+      await prisma.timeOffTransaction.create({
+        data: {
+          userId: user.id,
+          type: requestedType === LeaveRequestType.SICK ? LeaveType.SICK : LeaveType.VACATION,
+          requestedType,
+          kind: TimeOffEntryKind.ADJUSTMENT,
+          days: new Prisma.Decimal(0),
+          effectiveDate: new Date(),
+          note: 'Seed transaction placeholder',
         },
       })
     }

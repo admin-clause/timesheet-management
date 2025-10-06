@@ -1,6 +1,15 @@
 -- CreateEnum
 CREATE TYPE "public"."Role" AS ENUM ('USER', 'ADMIN');
 
+-- CreateEnum
+CREATE TYPE "public"."LeaveType" AS ENUM ('SICK', 'VACATION');
+
+-- CreateEnum
+CREATE TYPE "public"."TimeOffEntryKind" AS ENUM ('ACCRUAL', 'USAGE', 'ADJUSTMENT');
+
+-- CreateEnum
+CREATE TYPE "public"."LeaveRequestType" AS ENUM ('SICK', 'VACATION', 'BEREAVEMENT', 'UNPAID', 'MILITARY', 'JURY_DUTY', 'PARENTAL', 'OTHER');
+
 -- CreateTable
 CREATE TABLE "public"."Account" (
     "id" TEXT NOT NULL,
@@ -45,6 +54,7 @@ CREATE TABLE "public"."User" (
     "image" TEXT,
     "password" TEXT,
     "role" "public"."Role" NOT NULL DEFAULT 'USER',
+    "employmentStartDate" TIMESTAMP(3),
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -69,6 +79,36 @@ CREATE TABLE "public"."TaskEntry" (
     CONSTRAINT "TaskEntry_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "public"."TimeOffBalance" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "type" "public"."LeaveType" NOT NULL,
+    "balance" DECIMAL(65,30) NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "TimeOffBalance_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."TimeOffTransaction" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "recordedById" INTEGER,
+    "type" "public"."LeaveType" NOT NULL,
+    "requestedType" "public"."LeaveRequestType" NOT NULL DEFAULT 'VACATION',
+    "kind" "public"."TimeOffEntryKind" NOT NULL,
+    "days" DECIMAL(5,2) NOT NULL,
+    "effectiveDate" DATE NOT NULL,
+    "periodStart" DATE,
+    "periodEnd" DATE,
+    "note" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TimeOffTransaction_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Account_provider_providerAccountId_key" ON "public"."Account"("provider", "providerAccountId");
 
@@ -87,6 +127,12 @@ CREATE UNIQUE INDEX "User_email_key" ON "public"."User"("email");
 -- CreateIndex
 CREATE UNIQUE INDEX "Project_name_key" ON "public"."Project"("name");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "TimeOffBalance_userId_type_key" ON "public"."TimeOffBalance"("userId", "type");
+
+-- CreateIndex
+CREATE INDEX "TimeOffTransaction_userId_type_effectiveDate_idx" ON "public"."TimeOffTransaction"("userId", "type", "effectiveDate");
+
 -- AddForeignKey
 ALTER TABLE "public"."Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -98,3 +144,12 @@ ALTER TABLE "public"."TaskEntry" ADD CONSTRAINT "TaskEntry_userId_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "public"."TaskEntry" ADD CONSTRAINT "TaskEntry_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "public"."Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."TimeOffBalance" ADD CONSTRAINT "TimeOffBalance_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."TimeOffTransaction" ADD CONSTRAINT "TimeOffTransaction_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."TimeOffTransaction" ADD CONSTRAINT "TimeOffTransaction_recordedById_fkey" FOREIGN KEY ("recordedById") REFERENCES "public"."User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

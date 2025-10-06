@@ -1,73 +1,87 @@
-import { Clock, BarChart3, Briefcase, Users, KeyRound, ClipboardList } from "lucide-react";
-import { getServerSession } from "next-auth";
 import {
-    Sidebar,
-    SidebarContent,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarGroupLabel,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { authOptions } from "@/lib/auth";
-import { LogoutButton } from "./ui/logout-button";
-import { Separator } from "./ui/separator";
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from '@/components/ui/sidebar'
+import { authOptions } from '@/lib/auth'
+import { BarChart3, Briefcase, ClipboardList, Clock, KeyRound, Umbrella, Users } from 'lucide-react'
+import { getServerSession } from 'next-auth'
+import { LogoutButton } from './ui/logout-button'
+import { Separator } from './ui/separator'
 
 // Menu items.
 const items = [
   {
-    title: "Timesheet",
-    url: "/timesheet",
+    title: 'Timesheet',
+    url: '/timesheet',
     icon: Clock,
-    roles: ["ADMIN", "USER"],
+    roles: ['ADMIN', 'USER'],
     order: 1,
   },
   {
-    title: "Team Timesheets",
-    url: "/admin/timesheets",
+    title: 'Team Timesheets',
+    url: '/admin/timesheets',
     icon: ClipboardList,
-    roles: ["ADMIN"],
+    roles: ['ADMIN'],
     order: 2,
   },
   {
-    title: "Report",
-    url: "/admin/reports",
-    icon: BarChart3,
-    roles: ["ADMIN"],
+    title: 'Time Off',
+    url: '/time-off',
+    icon: Umbrella,
+    roles: ['ADMIN', 'USER'],
     order: 3,
   },
   {
-    title: "Projects",
-    url: "/admin/projects",
-    icon: Briefcase,
-    roles: ["ADMIN"],
+    title: 'Team Time Off',
+    url: '/admin/time-off',
+    icon: ClipboardList,
+    roles: ['ADMIN'],
     order: 4,
   },
   {
-    title: "Users",
-    url: "/admin/users",
-    icon: Users,
-    roles: ["ADMIN"],
+    title: 'Report',
+    url: '/admin/reports',
+    icon: BarChart3,
+    roles: ['ADMIN'],
     order: 5,
   },
-];
+  {
+    title: 'Projects',
+    url: '/admin/projects',
+    icon: Briefcase,
+    roles: ['ADMIN'],
+    order: 6,
+  },
+  {
+    title: 'Users',
+    url: '/admin/users',
+    icon: Users,
+    roles: ['ADMIN'],
+    order: 7,
+  },
+]
 
 export async function AppSidebar() {
-  const session = await getServerSession(authOptions);
-  const userRole = session?.user?.role;
+  const session = await getServerSession(authOptions)
+  const userRole = session?.user?.role
 
   const filteredItems = items
-    .filter((item) => {
+    .filter(item => {
       if (!item.roles) {
-        return true;
+        return true
       }
       if (!userRole) {
-        return false;
+        return false
       }
-      return item.roles.includes(userRole);
+      return item.roles.includes(userRole)
     })
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 
   return (
     <Sidebar>
@@ -77,7 +91,7 @@ export async function AppSidebar() {
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {filteredItems.map((item) => (
+              {filteredItems.map(item => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
@@ -96,27 +110,27 @@ export async function AppSidebar() {
       <div className="mt-auto">
         <Separator />
         <SidebarGroup>
-            <SidebarGroupLabel>Account</SidebarGroupLabel>
-            <SidebarGroupContent>
-                <div className="px-3 py-2 text-sm font-medium">
-                    <p>{session?.user?.name || session?.user?.email}</p>
-                </div>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                            <a href="/account/password">
-                                <KeyRound />
-                                <span>Change Password</span>
-                            </a>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <LogoutButton />
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarGroupContent>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <div className="px-3 py-2 text-sm font-medium">
+              <p>{session?.user?.name || session?.user?.email}</p>
+            </div>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <a href="/account/password">
+                    <KeyRound />
+                    <span>Change Password</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <LogoutButton />
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
         </SidebarGroup>
       </div>
     </Sidebar>
-  );
+  )
 }

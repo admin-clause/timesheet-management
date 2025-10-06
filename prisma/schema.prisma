@@ -102,6 +102,7 @@ model TimeOffTransaction {
   recordedBy    User?            @relation("transactionRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
   recordedById  Int?
   type          LeaveType
+  requestedType LeaveRequestType @default(VACATION)
   kind          TimeOffEntryKind
   days          Decimal          @db.Decimal(5, 2)
   effectiveDate DateTime         @db.Date
@@ -121,16 +122,21 @@ enum Role {
 enum LeaveType {
   SICK
   VACATION
-  BEREAVEMENT
-  UNPAID
-  MILITARY
-  JURY_DUTY
-  PARENTAL
-  OTHER
 }
 
 enum TimeOffEntryKind {
   ACCRUAL
   USAGE
   ADJUSTMENT
+}
+
+enum LeaveRequestType {
+  SICK
+  VACATION
+  BEREAVEMENT
+  UNPAID
+  MILITARY
+  JURY_DUTY
+  PARENTAL
+  OTHER
 }

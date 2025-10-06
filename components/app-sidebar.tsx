@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { authOptions } from '@/lib/auth'
-import { BarChart3, Briefcase, ClipboardList, Clock, KeyRound, Umbrella, Users } from 'lucide-react'
+import { BarChart3, BadgeCheck, Briefcase, ClipboardList, Clock, FileEdit, KeyRound, Umbrella, Users } from 'lucide-react'
 import { getServerSession } from 'next-auth'
 import { LogoutButton } from './ui/logout-button'
 import { Separator } from './ui/separator'
@@ -24,46 +24,60 @@ const items = [
     order: 1,
   },
   {
+    title: 'Requests',
+    url: '/requests',
+    icon: FileEdit,
+    roles: ['ADMIN', 'USER'],
+    order: 2,
+  },
+  {
     title: 'Team Timesheets',
     url: '/admin/timesheets',
     icon: ClipboardList,
     roles: ['ADMIN'],
-    order: 2,
+    order: 3,
   },
   {
     title: 'Time Off',
     url: '/time-off',
     icon: Umbrella,
     roles: ['ADMIN', 'USER'],
-    order: 3,
+    order: 4,
   },
   {
     title: 'Team Time Off',
     url: '/admin/time-off',
     icon: ClipboardList,
     roles: ['ADMIN'],
-    order: 4,
+    order: 5,
+  },
+  {
+    title: 'Approvals',
+    url: '/admin/approvals',
+    icon: BadgeCheck,
+    roles: ['ADMIN'],
+    order: 6,
   },
   {
     title: 'Report',
     url: '/admin/reports',
     icon: BarChart3,
     roles: ['ADMIN'],
-    order: 5,
+    order: 7,
   },
   {
     title: 'Projects',
     url: '/admin/projects',
     icon: Briefcase,
     roles: ['ADMIN'],
-    order: 6,
+    order: 8,
   },
   {
     title: 'Users',
     url: '/admin/users',
     icon: Users,
     roles: ['ADMIN'],
-    order: 7,
+    order: 9,
   },
 ]
 

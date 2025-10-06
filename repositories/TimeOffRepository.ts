@@ -42,8 +42,16 @@ export async function getTimeOffBalances(userId: number): Promise<TimeOffBalance
   });
 }
 
-const mapRequestedToStored = (requested: LeaveRequestType): LeaveType => {
-  return requested === LeaveRequestType.SICK ? LeaveType.SICK : LeaveType.VACATION;
+const mapRequestedToStored = (requested: LeaveRequestType): { storedType: LeaveType; affectsBalance: boolean } => {
+  if (requested === LeaveRequestType.SICK) {
+    return { storedType: LeaveType.SICK, affectsBalance: true };
+  }
+
+  if (requested === LeaveRequestType.UNPAID) {
+    return { storedType: LeaveType.VACATION, affectsBalance: false };
+  }
+
+  return { storedType: LeaveType.VACATION, affectsBalance: true };
 };
 
 export async function getTimeOffTransactions(filters: TimeOffTransactionFilters): Promise<TimeOffTransaction[]> {
@@ -128,7 +136,7 @@ export async function recordTimeOffTransaction(input: RecordTimeOffTransactionIn
   }
 
   let delta = new Prisma.Decimal(days);
-  const storageType = mapRequestedToStored(requestedType);
+  const { storedType, affectsBalance } = mapRequestedToStored(requestedType);
 
   if (kind === TimeOffEntryKind.ACCRUAL) {
     if (delta.lte(0)) {
@@ -145,32 +153,42 @@ export async function recordTimeOffTransaction(input: RecordTimeOffTransactionIn
   const normalizedPeriodStart = periodStart ? normalizeDate(periodStart) : null;
   const normalizedPeriodEnd = periodEnd ? normalizeDate(periodEnd) : null;
 
+  const transactionDays = affectsBalance ? delta : new Prisma.Decimal(days);
+
+  const performBalanceMutation = affectsBalance
+    ? async (tx: Prisma.TransactionClient) => {
+        await tx.timeOffBalance.upsert({
+          where: {
+            userId_type: {
+              userId,
+              type: storedType,
+            },
+          },
+          update: {
+            balance: { increment: delta },
+          },
+          create: {
+            userId,
+            type: storedType,
+            balance: delta,
+          },
+        });
+      }
+    : async () => {
+        // No balance impact for this requested type (e.g., unpaid leave).
+      };
+
   return prisma.$transaction(async tx => {
-    await tx.timeOffBalance.upsert({
-      where: {
-        userId_type: {
-          userId,
-          type: storageType,
-        },
-      },
-      update: {
-        balance: { increment: delta },
-      },
-      create: {
-        userId,
-        type: storageType,
-        balance: delta,
-      },
-    });
+    await performBalanceMutation(tx);
 
     return tx.timeOffTransaction.create({
       data: {
         userId,
         recordedById,
-        type: storageType,
+        type: storedType,
         requestedType,
         kind,
-        days: delta,
+        days: transactionDays,
         effectiveDate: normalizedEffectiveDate,
         periodStart: normalizedPeriodStart,
         periodEnd: normalizedPeriodEnd,

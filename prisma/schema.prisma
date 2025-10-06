@@ -62,6 +62,8 @@ model User {
   timeOffBalances      TimeOffBalance[]
   timeOffTransactions  TimeOffTransaction[]
   recordedTransactions TimeOffTransaction[] @relation("transactionRecorder")
+  requests             ApprovalRequest[]      @relation("requester")
+  approvals            ApprovalRequest[]      @relation("approver")
 }
 
 model Project {
@@ -114,6 +116,40 @@ model TimeOffTransaction {
   @@index([userId, type, effectiveDate])
 }
 
+model ApprovalRequest {
+  id             Int                 @id @default(autoincrement())
+  requestType    ApprovalRequestType
+  status         ApprovalStatus      @default(PENDING)
+  requestedBy    User                @relation("requester", fields: [requestedById], references: [id], onDelete: Cascade)
+  requestedById  Int
+  reviewedBy     User?               @relation("approver", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedById   Int?
+  submittedAt    DateTime            @default(now())
+  decidedAt      DateTime?
+  requesterNote  String?
+  approverNote   String?
+  metadata       Json?
+
+  timeOffDetails TimeOffRequestDetails?
+
+  @@index([requestType, status, submittedAt])
+  @@index([requestedById, status])
+}
+
+model TimeOffRequestDetails {
+  id                 Int               @id @default(autoincrement())
+  approvalRequest    ApprovalRequest   @relation(fields: [approvalRequestId], references: [id], onDelete: Cascade)
+  approvalRequestId  Int               @unique
+  requestedType      LeaveRequestType
+  storedType         LeaveType
+  periodStart        DateTime
+  periodEnd          DateTime
+  partialStartDays   Decimal? @db.Decimal(4, 2)
+  partialEndDays     Decimal? @db.Decimal(4, 2)
+  totalDays          Decimal  @db.Decimal(5, 2)
+  overrideBalance    Boolean  @default(false)
+}
+
 enum Role {
   USER
   ADMIN
@@ -139,4 +175,15 @@ enum LeaveRequestType {
   JURY_DUTY
   PARENTAL
   OTHER
+}
+
+enum ApprovalRequestType {
+  TIME_OFF
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
 }

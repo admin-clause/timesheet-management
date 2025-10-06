@@ -29,3 +29,22 @@ Track monthly accruals and manual adjustments for sick, vacation, and other leav
 - Monthly accrual job affects sick and vacation leave types only.
 - Manual adjustments accept positive values (credit) or negative values (debit) and are restricted to admins.
 - Transactions capture `recordedBy`, `periodStart/End`, and optional notes for auditing.
+
+## Phase 2: Approval Workflow (Time-Off & Future Types)
+- [ ] **Schema & Data Modeling**
+  - [x] Introduce `ApprovalRequest` table (id, `ApprovalRequestType`(TIME_OFF), `ApprovalStatus`, requester/approver relations, timestamps, notes, metadata JSON).
+  - [x] Add `TimeOffRequestDetails` child table linked via `approvalRequestId` (requestedType, storedType, date range, fractional days, total days, override flag).
+  - [ ] Ensure approval triggers create linked `TimeOffTransaction` entries and sanity-check balances; cancellations revert pending records.
+- [ ] **Repository Layer**
+  - [ ] Helpers to create/cancel user requests, list/filter by status, and approve/reject with transactional linkage to `recordTimeOffTransaction`.
+  - [ ] Utility to compute day totals based on period + partial days.
+- [x] **APIs**
+  - [x] User endpoints: `POST /api/time-off/requests` (create), `GET /api/time-off/requests` (list own, filter by status), `POST /api/time-off/requests/{id}/cancel`.
+  - [x] Admin endpoints: `GET /api/admin/time-off/requests` (queue with filters), `POST /api/admin/time-off/requests/{id}/approve`, `POST /api/admin/time-off/requests/{id}/reject` (with optional admin note & override flag).
+- [ ] **User Experience**
+  - [ ] Employee form (leave type, date range, fractional days, reason) with request history (pending/approved/rejected) and cancel pending option.
+  - [ ] Admin dashboard showing pending items with balance preview and approve/reject controls.
+- [ ] **Testing & Docs**
+  - [ ] Expand QA scenarios for request lifecycle (create → approve/reject → transaction creation) and balance guardrails.
+  - [ ] Update `AGENTS.md` with request/approval procedures and monthly runbook tie-ins.
+  - [ ] Seed data: add sample requests in various statuses to support dev testing.

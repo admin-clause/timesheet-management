@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma'
 import {
   LeaveRequestType,
   LeaveType,
@@ -6,93 +6,100 @@ import {
   TimeOffBalance,
   TimeOffEntryKind,
   TimeOffTransaction,
-} from '@prisma/client';
+} from '@prisma/client'
 
-const ACCRUAL_LEAVE_TYPES: readonly LeaveType[] = [LeaveType.SICK, LeaveType.VACATION];
+const ACCRUAL_LEAVE_TYPES: readonly LeaveType[] = [LeaveType.SICK, LeaveType.VACATION]
 
 const normalizeDate = (value: Date): Date => {
-  const copy = new Date(value);
-  copy.setHours(0, 0, 0, 0);
-  return copy;
-};
+  const copy = new Date(value)
+  copy.setHours(0, 0, 0, 0)
+  return copy
+}
 
 const startOfMonth = (value: Date): Date => {
-  return new Date(value.getFullYear(), value.getMonth(), 1);
-};
+  return new Date(value.getFullYear(), value.getMonth(), 1)
+}
 
 const endOfMonth = (value: Date): Date => {
-  return new Date(value.getFullYear(), value.getMonth() + 1, 0, 23, 59, 59, 999);
-};
+  return new Date(value.getFullYear(), value.getMonth() + 1, 0, 23, 59, 59, 999)
+}
 
 export type TimeOffTransactionFilters = {
-  userId?: number;
-  type?: LeaveType;
-  requestedType?: LeaveRequestType;
-  startDate?: Date;
-  endDate?: Date;
-  limit?: number;
-  kind?: TimeOffEntryKind;
-  kinds?: TimeOffEntryKind[];
-};
+  userId?: number
+  type?: LeaveType
+  requestedType?: LeaveRequestType
+  startDate?: Date
+  endDate?: Date
+  limit?: number
+  kind?: TimeOffEntryKind
+  kinds?: TimeOffEntryKind[]
+}
 
 export async function getTimeOffBalances(userId: number): Promise<TimeOffBalance[]> {
   return prisma.timeOffBalance.findMany({
     where: { userId },
     orderBy: { type: 'asc' },
-  });
+  })
 }
 
-const mapRequestedToStored = (requested: LeaveRequestType): { storedType: LeaveType; affectsBalance: boolean } => {
+const mapRequestedToStored = (
+  requested: LeaveRequestType
+): { storedType: LeaveType; affectsBalance: boolean } => {
   if (requested === LeaveRequestType.SICK) {
-    return { storedType: LeaveType.SICK, affectsBalance: true };
+    return { storedType: LeaveType.SICK, affectsBalance: true }
   }
 
   if (requested === LeaveRequestType.UNPAID) {
-    return { storedType: LeaveType.VACATION, affectsBalance: false };
+    return { storedType: LeaveType.VACATION, affectsBalance: false }
   }
 
-  return { storedType: LeaveType.VACATION, affectsBalance: true };
-};
+  return { storedType: LeaveType.VACATION, affectsBalance: true }
+}
 
-export async function getTimeOffTransactions(filters: TimeOffTransactionFilters): Promise<TimeOffTransaction[]> {
-  const { userId, type, requestedType, startDate, endDate, limit, kind, kinds } = filters;
-  const where: Prisma.TimeOffTransactionWhereInput = {};
+export async function getTimeOffTransactions(
+  filters: TimeOffTransactionFilters
+): Promise<TimeOffTransaction[]> {
+  const { userId, type, requestedType, startDate, endDate, limit, kind, kinds } = filters
+  const where: Prisma.TimeOffTransactionWhereInput = {}
 
   if (typeof userId === 'number') {
-    where.userId = userId;
+    where.userId = userId
   }
   if (type) {
-    where.type = type;
+    where.type = type
   }
   if (requestedType) {
-    where.requestedType = requestedType;
+    where.requestedType = requestedType
   }
   if (kind) {
-    where.kind = kind;
+    where.kind = kind
   }
   if (kinds && kinds.length > 0) {
-    where.kind = { in: kinds };
+    where.kind = { in: kinds }
   }
   if (startDate || endDate) {
     where.effectiveDate = {
       ...(startDate ? { gte: normalizeDate(startDate) } : {}),
       ...(endDate ? { lte: normalizeDate(endDate) } : {}),
-    };
+    }
   }
 
   return prisma.timeOffTransaction.findMany({
     where,
     orderBy: [{ effectiveDate: 'desc' }, { createdAt: 'desc' }],
     take: limit ?? 50,
-  });
+  })
 }
 
-export async function getTimeOffSummaryForUser(userId: number, options?: {
-  limit?: number;
-  includeKinds?: TimeOffEntryKind[];
-}): Promise<{
-  balances: TimeOffBalance[];
-  transactions: TimeOffTransaction[];
+export async function getTimeOffSummaryForUser(
+  userId: number,
+  options?: {
+    limit?: number
+    includeKinds?: TimeOffEntryKind[]
+  }
+): Promise<{
+  balances: TimeOffBalance[]
+  transactions: TimeOffTransaction[]
 }> {
   const [balances, transactions] = await Promise.all([
     getTimeOffBalances(userId),
@@ -101,24 +108,26 @@ export async function getTimeOffSummaryForUser(userId: number, options?: {
       limit: options?.limit ?? 25,
       ...(options?.includeKinds ? { kinds: options.includeKinds } : {}),
     }),
-  ]);
+  ])
 
-  return { balances, transactions };
+  return { balances, transactions }
 }
 
 export type RecordTimeOffTransactionInput = {
-  userId: number;
-  recordedById?: number;
-  requestedType: LeaveRequestType;
-  kind: TimeOffEntryKind;
-  days: number;
-  effectiveDate: Date;
-  periodStart?: Date | null;
-  periodEnd?: Date | null;
-  note?: string | null;
-};
+  userId: number
+  recordedById?: number
+  requestedType: LeaveRequestType
+  kind: TimeOffEntryKind
+  days: number
+  effectiveDate: Date
+  periodStart?: Date | null
+  periodEnd?: Date | null
+  note?: string | null
+}
 
-export async function recordTimeOffTransaction(input: RecordTimeOffTransactionInput): Promise<TimeOffTransaction> {
+export async function recordTimeOffTransaction(
+  input: RecordTimeOffTransactionInput
+): Promise<TimeOffTransaction> {
   const {
     userId,
     recordedById,
@@ -129,31 +138,31 @@ export async function recordTimeOffTransaction(input: RecordTimeOffTransactionIn
     periodStart,
     periodEnd,
     note,
-  } = input;
+  } = input
 
   if (!days || Number.isNaN(days)) {
-    throw new Error('Days must be a non-zero number');
+    throw new Error('Days must be a non-zero number')
   }
 
-  let delta = new Prisma.Decimal(days);
-  const { storedType, affectsBalance } = mapRequestedToStored(requestedType);
+  let delta = new Prisma.Decimal(days)
+  const { storedType, affectsBalance } = mapRequestedToStored(requestedType)
 
   if (kind === TimeOffEntryKind.ACCRUAL) {
     if (delta.lte(0)) {
-      throw new Error('Accrual transactions must add a positive amount');
+      throw new Error('Accrual transactions must add a positive amount')
     }
   } else if (kind === TimeOffEntryKind.USAGE) {
     if (delta.lte(0)) {
-      throw new Error('Usage transactions require a positive day count');
+      throw new Error('Usage transactions require a positive day count')
     }
-    delta = delta.neg();
+    delta = delta.neg()
   }
 
-  const normalizedEffectiveDate = normalizeDate(effectiveDate);
-  const normalizedPeriodStart = periodStart ? normalizeDate(periodStart) : null;
-  const normalizedPeriodEnd = periodEnd ? normalizeDate(periodEnd) : null;
+  const normalizedEffectiveDate = normalizeDate(effectiveDate)
+  const normalizedPeriodStart = periodStart ? normalizeDate(periodStart) : null
+  const normalizedPeriodEnd = periodEnd ? normalizeDate(periodEnd) : null
 
-  const transactionDays = affectsBalance ? delta : new Prisma.Decimal(days);
+  const transactionDays = affectsBalance ? delta : new Prisma.Decimal(days)
 
   const performBalanceMutation = affectsBalance
     ? async (tx: Prisma.TransactionClient) => {
@@ -172,14 +181,14 @@ export async function recordTimeOffTransaction(input: RecordTimeOffTransactionIn
             type: storedType,
             balance: delta,
           },
-        });
+        })
       }
     : async () => {
         // No balance impact for this requested type (e.g., unpaid leave).
-      };
+      }
 
   return prisma.$transaction(async tx => {
-    await performBalanceMutation(tx);
+    await performBalanceMutation(tx)
 
     return tx.timeOffTransaction.create({
       data: {
@@ -194,28 +203,28 @@ export async function recordTimeOffTransaction(input: RecordTimeOffTransactionIn
         periodEnd: normalizedPeriodEnd,
         note: note ?? null,
       },
-    });
-  });
+    })
+  })
 }
 
 export type AccrualResult = {
-  month: Date;
-  created: number;
-  skipped: number;
-};
+  month: Date
+  created: number
+  skipped: number
+}
 
 export async function accrueMonthlyLeave(options: {
-  month: Date;
-  recordedById?: number;
-  amountPerType?: number;
+  month: Date
+  recordedById?: number
+  amountPerType?: number
 }): Promise<AccrualResult> {
-  const { month, recordedById, amountPerType = 1 } = options;
+  const { month, recordedById, amountPerType = 1 } = options
   if (amountPerType <= 0) {
-    throw new Error('Accrual amount must be positive');
+    throw new Error('Accrual amount must be positive')
   }
 
-  const monthStart = startOfMonth(month);
-  const monthEnd = endOfMonth(month);
+  const monthStart = startOfMonth(month)
+  const monthEnd = endOfMonth(month)
   const existingAccruals = await prisma.timeOffTransaction.findMany({
     where: {
       kind: TimeOffEntryKind.ACCRUAL,
@@ -226,9 +235,9 @@ export async function accrueMonthlyLeave(options: {
       userId: true,
       type: true,
     },
-  });
+  })
 
-  const alreadyAccrued = new Set(existingAccruals.map(entry => `${entry.userId}:${entry.type}`));
+  const alreadyAccrued = new Set(existingAccruals.map(entry => `${entry.userId}:${entry.type}`))
 
   const users = await prisma.user.findMany({
     where: {
@@ -239,19 +248,19 @@ export async function accrueMonthlyLeave(options: {
     select: {
       id: true,
     },
-  });
+  })
 
-  let created = 0;
+  let created = 0
 
   await prisma.$transaction(async tx => {
     for (const user of users) {
       for (const type of ACCRUAL_LEAVE_TYPES) {
-        const key = `${user.id}:${type}`;
+        const key = `${user.id}:${type}`
         if (alreadyAccrued.has(key)) {
-          continue;
+          continue
         }
 
-        const delta = new Prisma.Decimal(amountPerType);
+        const delta = new Prisma.Decimal(amountPerType)
 
         await tx.timeOffBalance.upsert({
           where: {
@@ -268,14 +277,15 @@ export async function accrueMonthlyLeave(options: {
             type,
             balance: delta,
           },
-        });
+        })
 
         await tx.timeOffTransaction.create({
           data: {
             userId: user.id,
             recordedById,
             type,
-            requestedType: type === LeaveType.SICK ? LeaveRequestType.SICK : LeaveRequestType.VACATION,
+            requestedType:
+              type === LeaveType.SICK ? LeaveRequestType.SICK : LeaveRequestType.VACATION,
             kind: TimeOffEntryKind.ACCRUAL,
             days: delta,
             effectiveDate: monthStart,
@@ -283,20 +293,20 @@ export async function accrueMonthlyLeave(options: {
             periodEnd: monthEnd,
             note: `Monthly accrual for ${monthStart.toISOString().slice(0, 7)}`,
           },
-        });
+        })
 
-        alreadyAccrued.add(key);
-        created += 1;
+        alreadyAccrued.add(key)
+        created += 1
       }
     }
-  });
+  })
 
-  const totalPossible = users.length * ACCRUAL_LEAVE_TYPES.length;
-  const skipped = totalPossible - created;
+  const totalPossible = users.length * ACCRUAL_LEAVE_TYPES.length
+  const skipped = totalPossible - created
 
   return {
     month: monthStart,
     created,
     skipped,
-  };
+  }
 }

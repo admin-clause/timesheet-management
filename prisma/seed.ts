@@ -76,7 +76,16 @@ async function main() {
   }
 
   const users = await prisma.user.findMany({ select: { id: true } })
-  const leaveTypes: LeaveType[] = [LeaveType.SICK, LeaveType.VACATION]
+  const leaveTypes: LeaveType[] = [
+    LeaveType.SICK,
+    LeaveType.VACATION,
+    LeaveType.BEREAVEMENT,
+    LeaveType.UNPAID,
+    LeaveType.MILITARY,
+    LeaveType.JURY_DUTY,
+    LeaveType.PARENTAL,
+    LeaveType.OTHER,
+  ]
 
   for (const user of users) {
     for (const type of leaveTypes) {

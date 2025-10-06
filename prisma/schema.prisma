@@ -121,6 +121,12 @@ enum Role {
 enum LeaveType {
   SICK
   VACATION
+  BEREAVEMENT
+  UNPAID
+  MILITARY
+  JURY_DUTY
+  PARENTAL
+  OTHER
 }
 
 enum TimeOffEntryKind {

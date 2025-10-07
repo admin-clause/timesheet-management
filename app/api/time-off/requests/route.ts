@@ -1,17 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
-import { createTimeOffRequest, listApprovalRequests, ApprovalFilters } from '@/repositories/TimeOffApprovalRepository'
-import { LeaveRequestType, ApprovalStatus } from '@prisma/client'
+import {
+  ApprovalFilters,
+  createTimeOffRequest,
+  listApprovalRequests,
+} from '@/repositories/TimeOffApprovalRepository'
+import { ApprovalStatus, LeaveRequestType } from '@prisma/client'
+import { getServerSession } from 'next-auth/next'
+import { NextRequest, NextResponse } from 'next/server'
 
 const parseLeaveRequestType = (value: string | null): LeaveRequestType | undefined => {
   if (!value) return undefined
-  return (Object.values(LeaveRequestType) as string[]).includes(value) ? (value as LeaveRequestType) : undefined
+  return (Object.values(LeaveRequestType) as string[]).includes(value)
+    ? (value as LeaveRequestType)
+    : undefined
 }
 
 const parseStatus = (value: string | null): ApprovalStatus | undefined => {
   if (!value) return undefined
-  return (Object.values(ApprovalStatus) as string[]).includes(value) ? (value as ApprovalStatus) : undefined
+  return (Object.values(ApprovalStatus) as string[]).includes(value)
+    ? (value as ApprovalStatus)
+    : undefined
 }
 
 export async function GET(request: NextRequest) {
@@ -45,7 +53,7 @@ export async function GET(request: NextRequest) {
               partialEndDays: request.timeOffDetails.partialEndDays?.toString() ?? null,
             }
           : null,
-      })),
+      }))
     )
   } catch (error) {
     console.error('GET /api/time-off/requests error:', error)
@@ -92,7 +100,9 @@ export async function POST(request: NextRequest) {
     return new NextResponse('Bad Request: periodEnd is invalid', { status: 400 })
   }
   if (periodEnd < periodStart) {
-    return new NextResponse('Bad Request: periodEnd must be on or after periodStart', { status: 400 })
+    return new NextResponse('Bad Request: periodEnd must be on or after periodStart', {
+      status: 400,
+    })
   }
   if (typeof totalDays !== 'number' || Number.isNaN(totalDays) || totalDays <= 0) {
     return new NextResponse('Bad Request: totalDays must be a positive number', { status: 400 })
@@ -114,16 +124,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ...approval,
-        timeOffDetails: approval.timeOffDetails
-          ? {
-              ...approval.timeOffDetails,
-              totalDays: approval.timeOffDetails.totalDays.toString(),
-              partialStartDays: approval.timeOffDetails.partialStartDays?.toString() ?? null,
-              partialEndDays: approval.timeOffDetails.partialEndDays?.toString() ?? null,
-            }
-          : null,
       },
-      { status: 201 },
+      { status: 201 }
     )
   } catch (error) {
     console.error('POST /api/time-off/requests error:', error)

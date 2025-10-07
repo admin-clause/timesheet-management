@@ -1,11 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { isAdmin } from '@/lib/utils'
 import { rejectTimeOffRequest } from '@/repositories/TimeOffApprovalRepository'
+import { getServerSession } from 'next-auth/next'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions)
+  if (!session) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
   if (!isAdmin(session)) {
     return new NextResponse('Forbidden', { status: 403 })
   }

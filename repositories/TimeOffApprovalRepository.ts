@@ -261,9 +261,7 @@ export type ApprovalFilters = {
   limit?: number
 }
 
-export async function listApprovalRequests(filters: ApprovalFilters): Promise<(ApprovalRequest & {
-  timeOffDetails: TimeOffRequestDetails | null
-})[]> {
+export async function listApprovalRequests(filters: ApprovalFilters) {
   const { requestType, status, requestedById, reviewedById, limit } = filters
 
   const where: Prisma.ApprovalRequestWhereInput = {
@@ -280,6 +278,11 @@ export async function listApprovalRequests(filters: ApprovalFilters): Promise<(A
     where,
     include: {
       timeOffDetails: true,
+      requestedBy: {
+        select: {
+          name: true,
+        },
+      },
     },
     orderBy: {
       submittedAt: 'desc',

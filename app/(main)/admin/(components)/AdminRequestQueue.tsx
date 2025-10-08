@@ -50,6 +50,9 @@ type AdminTimeOffRequest = {
     totalDays: string
     overrideBalance: boolean
   } | null
+  requestedBy: {
+    name: string
+  }
 }
 
 const LEAVE_LABELS: Record<string, string> = {
@@ -244,7 +247,7 @@ export function AdminRequestQueue({ refreshTrigger = 0, onActionCompleted }: Pro
 
                   return (
                     <TableRow key={request.id}>
-                      <TableCell>#{request.requestedById}</TableCell>
+                      <TableCell>{request.requestedBy.name}</TableCell>
                       <TableCell>{formatLeaveLabel(details?.requestedType)}</TableCell>
                       <TableCell>{STATUS_LABELS[request.status]}</TableCell>
                       <TableCell>{period}</TableCell>

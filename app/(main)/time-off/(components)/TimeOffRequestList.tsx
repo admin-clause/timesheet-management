@@ -1,12 +1,25 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { toast } from 'sonner'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { ApprovalStatus } from '@prisma/client'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
 const statusOptions = [
   { label: 'All', value: 'ALL' },
@@ -72,7 +85,7 @@ type Props = {
 
 export function TimeOffRequestList({ refreshTrigger }: Props) {
   const [requests, setRequests] = useState<TimeOffRequest[]>([])
-  const [statusFilter, setStatusFilter] = useState<StatusValue>('ALL')
+  const [statusFilter, setStatusFilter] = useState<StatusValue>('PENDING')
   const [isLoading, setIsLoading] = useState(false)
 
   const fetchRequests = useCallback(async () => {
@@ -144,7 +157,9 @@ export function TimeOffRequestList({ refreshTrigger }: Props) {
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading requests…</p>
         ) : visibleRequests.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No requests found for the selected filter.</p>
+          <p className="text-sm text-muted-foreground">
+            No requests found for the selected filter.
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <Table>
@@ -165,7 +180,9 @@ export function TimeOffRequestList({ refreshTrigger }: Props) {
                   const details = request.timeOffDetails
                   const isPending = request.status === ApprovalStatus.PENDING
                   const submitted = formatDate(request.submittedAt)
-                  const period = details ? `${formatDate(details.periodStart)} → ${formatDate(details.periodEnd)}` : '—'
+                  const period = details
+                    ? `${formatDate(details.periodStart)} → ${formatDate(details.periodEnd)}`
+                    : '—'
                   const days = details ? Number(details.totalDays).toFixed(2) : '—'
                   return (
                     <TableRow key={request.id}>
@@ -174,15 +191,25 @@ export function TimeOffRequestList({ refreshTrigger }: Props) {
                       <TableCell>{statusLabels[request.status]}</TableCell>
                       <TableCell>{period}</TableCell>
                       <TableCell className="text-right font-mono">{days}</TableCell>
-                      <TableCell className="max-w-[200px] truncate" title={request.requesterNote ?? undefined}>
+                      <TableCell
+                        className="max-w-[200px] truncate"
+                        title={request.requesterNote ?? undefined}
+                      >
                         {request.requesterNote ?? '—'}
                       </TableCell>
-                      <TableCell className="max-w-[200px] truncate" title={request.approverNote ?? undefined}>
+                      <TableCell
+                        className="max-w-[200px] truncate"
+                        title={request.approverNote ?? undefined}
+                      >
                         {request.approverNote ?? '—'}
                       </TableCell>
                       <TableCell className="text-right">
                         {isPending ? (
-                          <Button variant="outline" size="sm" onClick={() => handleCancel(request.id)}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCancel(request.id)}
+                          >
                             Cancel
                           </Button>
                         ) : null}

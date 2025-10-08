@@ -1,16 +1,30 @@
 'use client'
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { toast } from 'sonner'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Textarea } from '@/components/ui/textarea'
 import { ApprovalStatus } from '@prisma/client'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
 const STATUS_OPTIONS = [
+  { label: 'All', value: 'ALL' },
   { label: 'Pending', value: 'PENDING' },
   { label: 'Approved', value: 'APPROVED' },
   { label: 'Rejected', value: 'REJECTED' },
@@ -131,7 +145,10 @@ export function AdminRequestQueue({ refreshTrigger = 0, onActionCompleted }: Pro
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Approval Queue</CardTitle>
         <div className="flex items-center gap-3">
-          <Select value={statusFilter} onValueChange={value => setStatusFilter(value as StatusValue)}>
+          <Select
+            value={statusFilter}
+            onValueChange={value => setStatusFilter(value as StatusValue)}
+          >
             <SelectTrigger className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
@@ -219,7 +236,9 @@ export function AdminRequestQueue({ refreshTrigger = 0, onActionCompleted }: Pro
                 visibleRequests.map(request => {
                   const details = request.timeOffDetails
                   const isPending = request.status === ApprovalStatus.PENDING
-                  const period = details ? `${formatDate(details.periodStart)} → ${formatDate(details.periodEnd)}` : '—'
+                  const period = details
+                    ? `${formatDate(details.periodStart)} → ${formatDate(details.periodEnd)}`
+                    : '—'
                   const days = details ? Number(details.totalDays).toFixed(2) : '—'
                   const overrideLabel = details?.overrideBalance ? 'Yes' : 'No'
 
@@ -231,16 +250,26 @@ export function AdminRequestQueue({ refreshTrigger = 0, onActionCompleted }: Pro
                       <TableCell>{period}</TableCell>
                       <TableCell className="text-right font-mono">{days}</TableCell>
                       <TableCell>{overrideLabel}</TableCell>
-                      <TableCell className="max-w-[200px] truncate" title={request.requesterNote ?? undefined}>
+                      <TableCell
+                        className="max-w-[200px] truncate"
+                        title={request.requesterNote ?? undefined}
+                      >
                         {request.requesterNote ?? '—'}
                       </TableCell>
-                      <TableCell className="max-w-[200px] truncate" title={request.approverNote ?? undefined}>
+                      <TableCell
+                        className="max-w-[200px] truncate"
+                        title={request.approverNote ?? undefined}
+                      >
                         {request.approverNote ?? '—'}
                       </TableCell>
                       <TableCell className="space-x-2 text-right">
                         {isPending ? (
                           <Fragment>
-                            <Button variant="outline" size="sm" onClick={() => handleAction(request.id, 'reject')}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleAction(request.id, 'reject')}
+                            >
                               Reject
                             </Button>
                             <Button size="sm" onClick={() => handleAction(request.id, 'approve')}>

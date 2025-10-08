@@ -1,13 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { isAdmin } from '@/lib/utils'
-import { listApprovalRequests, ApprovalFilters } from '@/repositories/TimeOffApprovalRepository'
+import { ApprovalFilters, listApprovalRequests } from '@/repositories/TimeOffApprovalRepository'
 import { ApprovalStatus } from '@prisma/client'
+import { getServerSession } from 'next-auth/next'
+import { NextRequest, NextResponse } from 'next/server'
 
 const parseStatus = (value: string | null): ApprovalStatus | undefined => {
   if (!value) return undefined
-  return (Object.values(ApprovalStatus) as string[]).includes(value) ? (value as ApprovalStatus) : undefined
+  return (Object.values(ApprovalStatus) as string[]).includes(value)
+    ? (value as ApprovalStatus)
+    : undefined
 }
 
 const parseLimit = (value: string | null): number | undefined => {
@@ -28,7 +30,7 @@ export async function GET(request: NextRequest) {
   const limit = parseLimit(url.searchParams.get('limit'))
 
   const filters: ApprovalFilters = {
-    status,
+    status: status ? status : undefined,
     requestedById: requestedById ? Number(requestedById) : undefined,
     limit,
   }
@@ -46,7 +48,7 @@ export async function GET(request: NextRequest) {
               partialEndDays: request.timeOffDetails.partialEndDays?.toString() ?? null,
             }
           : null,
-      })),
+      }))
     )
   } catch (error) {
     console.error('GET /api/admin/time-off/requests error:', error)

@@ -255,7 +255,7 @@ export async function rejectTimeOffRequest(options: {
 
 export type ApprovalFilters = {
   requestType?: ApprovalRequestType
-  status?: ApprovalStatus
+  status?: ApprovalStatus | 'All'
   requestedById?: number
   reviewedById?: number
   limit?: number
@@ -266,13 +266,18 @@ export async function listApprovalRequests(filters: ApprovalFilters): Promise<(A
 })[]> {
   const { requestType, status, requestedById, reviewedById, limit } = filters
 
+  const where: Prisma.ApprovalRequestWhereInput = {
+    requestType,
+    requestedById,
+    reviewedById,
+  }
+
+  if (status && status !== 'All') {
+    where.status = status
+  }
+
   return prisma.approvalRequest.findMany({
-    where: {
-      requestType,
-      status,
-      requestedById,
-      reviewedById,
-    },
+    where,
     include: {
       timeOffDetails: true,
     },

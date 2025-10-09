@@ -20,8 +20,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useTaskNameCache } from '@/hooks/use-task-name-cache'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { AutocompleteInput } from './ui/autocomplete-input'
 
 // --- Type Definitions ---
 type Project = { id: number; name: string }
@@ -61,6 +63,7 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
   const [isSaving, setIsSaving] = useState(false)
 
   const weekDays = useMemo(() => getWeekDays(currentDate), [currentDate])
+  const allTaskNames = useTaskNameCache()
 
   // --- Data Fetching ---
   useEffect(() => {
@@ -262,10 +265,10 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
                   </Select>
                 </TableCell>
                 <TableCell>
-                  <Input
-                    type="text"
+                  <AutocompleteInput
                     value={entry.taskName}
                     onChange={e => handleUpdateEntry(entry.id, 'taskName', e.target.value)}
+                    suggestions={allTaskNames}
                   />
                 </TableCell>
                 {weekDays.map(day => (

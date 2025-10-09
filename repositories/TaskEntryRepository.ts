@@ -1,15 +1,14 @@
-import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { prisma } from '@/lib/prisma'
 
 // Define the type for the input data for a single task entry
 // It can optionally have an id if it's an existing entry.
 export type TaskEntryInput = {
-  id?: number;
-  date: Date;
-  hours: number;
-  taskName: string;
-  projectId: number;
-};
+  id?: number
+  date: Date
+  hours: number
+  taskName: string
+  projectId: number
+}
 
 /**
  * Creates or updates a batch of task entries for a specific user.
@@ -19,9 +18,9 @@ export type TaskEntryInput = {
  */
 export async function upsertTaskEntries(userId: number, entries: TaskEntryInput[]) {
   const operations = entries.map(entry => {
-    const { id, ...data } = entry;
+    const { id, ...data } = entry
     // Dates from JSON will be strings, so convert them
-    const entryData = { ...data, date: new Date(data.date), userId };
+    const entryData = { ...data, date: new Date(data.date), userId }
 
     if (id && typeof id === 'number') {
       // If an ID is provided, update the existing entry.
@@ -32,21 +31,21 @@ export async function upsertTaskEntries(userId: number, entries: TaskEntryInput[
           userId,
         },
         data: entryData,
-      });
+      })
     } else {
       // If no ID is provided, create a new entry.
       return prisma.taskEntry.create({
         data: entryData,
-      });
+      })
     }
-  });
+  })
 
   try {
     // Execute all operations in a single transaction
-    return await prisma.$transaction(operations);
+    return await prisma.$transaction(operations)
   } catch (error) {
-    console.error('Database Transaction Error:', error);
-    throw new Error('Failed to upsert task entries.');
+    console.error('Database Transaction Error:', error)
+    throw new Error('Failed to upsert task entries.')
   }
 }
 
@@ -58,16 +57,16 @@ export async function upsertTaskEntries(userId: number, entries: TaskEntryInput[
  * @returns A promise that resolves to an array of task entries.
  */
 export async function getTaskEntriesForWeek(userId: number, date: Date) {
-  const dayOfWeek = date.getDay(); // Sunday = 0, Monday = 1, etc.
-  const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  
-  const monday = new Date(date);
-  monday.setDate(date.getDate() - distanceToMonday);
-  monday.setHours(0, 0, 0, 0);
+  const dayOfWeek = date.getDay() // Sunday = 0, Monday = 1, etc.
+  const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
 
-  const friday = new Date(monday);
-  friday.setDate(monday.getDate() + 4);
-  friday.setHours(23, 59, 59, 999);
+  const monday = new Date(date)
+  monday.setDate(date.getDate() - distanceToMonday)
+  monday.setHours(0, 0, 0, 0)
+
+  const friday = new Date(monday)
+  friday.setDate(monday.getDate() + 4)
+  friday.setHours(23, 59, 59, 999)
 
   try {
     return await prisma.taskEntry.findMany({
@@ -78,14 +77,11 @@ export async function getTaskEntriesForWeek(userId: number, date: Date) {
           lte: friday,
         },
       },
-      orderBy: [
-        { date: 'asc' },
-        { id: 'asc' },
-      ],
-    });
+      orderBy: [{ date: 'asc' }, { id: 'asc' }],
+    })
   } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch task entries.');
+    console.error('Database Error:', error)
+    throw new Error('Failed to fetch task entries.')
   }
 }
 
@@ -105,9 +101,32 @@ export async function deleteTaskEntry(userId: number, taskEntryId: number) {
         id: taskEntryId,
         userId: userId,
       },
-    });
+    })
   } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to delete task entry.');
+    console.error('Database Error:', error)
+    throw new Error('Failed to delete task entry.')
+  }
+}
+
+export async function getPreviousTaskNames(userId: number, limit: number = 10) {
+  try {
+    return await prisma.taskEntry.findMany({
+      select: {
+        taskName: true,
+      },
+      where: {
+        userId,
+        taskName: {
+          not: '',
+        },
+      },
+      orderBy: {
+        id: 'desc',
+      },
+      distinct: ['taskName'],
+    })
+  } catch (error) {
+    console.error('Database Error:', error)
+    throw new Error('Failed to fetch task entries.')
   }
 }

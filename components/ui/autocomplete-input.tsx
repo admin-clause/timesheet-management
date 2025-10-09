@@ -8,6 +8,8 @@ type AutocompleteInputProps = {
   suggestions: string[]
 }
 
+const MAX_SUGGESTIONS = 10
+
 export function AutocompleteInput({ value, onChange, suggestions }: AutocompleteInputProps) {
   const [filtered, setFiltered] = useState<string[]>([])
   const [isOpen, setIsOpen] = useState(false)
@@ -33,7 +35,7 @@ export function AutocompleteInput({ value, onChange, suggestions }: Autocomplete
       const filteredSuggestions = suggestions.filter(s =>
         s.toLowerCase().includes(userInput.toLowerCase())
       )
-      setFiltered(filteredSuggestions)
+      setFiltered(filteredSuggestions.slice(0, MAX_SUGGESTIONS))
       setIsOpen(true)
       updatePosition()
     } else {

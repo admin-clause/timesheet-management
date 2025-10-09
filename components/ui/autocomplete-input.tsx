@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+'use client'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Input } from './input'
 
 type AutocompleteInputProps = {
@@ -12,6 +13,19 @@ export function AutocompleteInput({ value, onChange, suggestions }: Autocomplete
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
   const containerRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null) // Ref for the input
+  const [style, setStyle] = useState<React.CSSProperties>({}) // State for position
+
+  const updatePosition = useCallback(() => {
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect()
+      setStyle({
+        left: `${rect.left}px`,
+        top: `${rect.bottom}px`,
+        width: `${rect.width}px`,
+      })
+    }
+  }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const userInput = e.target.value
@@ -21,12 +35,20 @@ export function AutocompleteInput({ value, onChange, suggestions }: Autocomplete
       )
       setFiltered(filteredSuggestions)
       setIsOpen(true)
+      updatePosition()
     } else {
       setFiltered([])
       setIsOpen(false)
     }
-    setActiveIndex(-1) // Reset active index on change
+    setActiveIndex(-1)
     onChange(e)
+  }
+
+  const handleFocus = () => {
+    if (value && filtered.length > 0) {
+      setIsOpen(true)
+      updatePosition()
+    }
   }
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -65,24 +87,40 @@ export function AutocompleteInput({ value, onChange, suggestions }: Autocomplete
         setIsOpen(false)
       }
     }
+
+    const handleResizeOrScroll = () => {
+      if (isOpen) {
+        updatePosition()
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside)
+    window.addEventListener('resize', handleResizeOrScroll)
+    window.addEventListener('scroll', handleResizeOrScroll, true)
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('resize', handleResizeOrScroll)
+      window.removeEventListener('scroll', handleResizeOrScroll, true)
     }
-  }, [])
+  }, [isOpen, updatePosition])
 
   return (
     <div className="relative" ref={containerRef}>
       <Input
+        ref={inputRef}
         type="text"
         value={value}
         onChange={handleInputChange}
-        onFocus={() => value && filtered.length > 0 && setIsOpen(true)}
+        onFocus={handleFocus}
         autoComplete="off"
         onKeyDown={handleKeyDown}
       />
       {isOpen && filtered.length > 0 && (
-        <ul className="absolute z-10 w-full bg-background border border-input rounded-md mt-1 max-h-60 overflow-y-auto">
+        <ul
+          style={style}
+          className="fixed z-50 bg-background border border-input rounded-md mt-1 max-h-60 overflow-y-auto"
+        >
           {filtered.map((suggestion, index) => (
             <li
               key={suggestion}

@@ -10,6 +10,7 @@ type AutocompleteInputProps = {
 export function AutocompleteInput({ value, onChange, suggestions }: AutocompleteInputProps) {
   const [filtered, setFiltered] = useState<string[]>([])
   const [isOpen, setIsOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,6 +25,7 @@ export function AutocompleteInput({ value, onChange, suggestions }: Autocomplete
       setFiltered([])
       setIsOpen(false)
     }
+    setActiveIndex(-1) // Reset active index on change
     onChange(e)
   }
 
@@ -31,6 +33,30 @@ export function AutocompleteInput({ value, onChange, suggestions }: Autocomplete
     onChange({ target: { value: suggestion } } as React.ChangeEvent<HTMLInputElement>)
     setFiltered([])
     setIsOpen(false)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isOpen || filtered.length === 0) return
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setActiveIndex(prev => (prev < filtered.length - 1 ? prev + 1 : 0))
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setActiveIndex(prev => (prev > 0 ? prev - 1 : filtered.length - 1))
+        break
+      case 'Enter':
+        if (activeIndex > -1) {
+          e.preventDefault()
+          handleSuggestionClick(filtered[activeIndex])
+        }
+        break
+      case 'Escape':
+        setIsOpen(false)
+        break
+    }
   }
 
   useEffect(() => {
@@ -51,17 +77,19 @@ export function AutocompleteInput({ value, onChange, suggestions }: Autocomplete
         type="text"
         value={value}
         onChange={handleInputChange}
-        list="suggestions"
-        onFocus={() => value && setIsOpen(true)}
+        onFocus={() => value && filtered.length > 0 && setIsOpen(true)}
         autoComplete="off"
+        onKeyDown={handleKeyDown}
       />
       {isOpen && filtered.length > 0 && (
         <ul className="absolute z-10 w-full bg-background border border-input rounded-md mt-1 max-h-60 overflow-y-auto">
-          {filtered.map(suggestion => (
+          {filtered.map((suggestion, index) => (
             <li
               key={suggestion}
               onMouseDown={() => handleSuggestionClick(suggestion)}
-              className="p-2 text-sm hover:bg-accent cursor-pointer"
+              className={`p-2 text-sm hover:bg-accent cursor-pointer ${
+                index === activeIndex ? 'bg-accent' : ''
+              }`}
             >
               {suggestion}
             </li>

@@ -67,9 +67,18 @@ model User {
 }
 
 model Project {
-  id          Int         @id @default(autoincrement())
-  name        String      @unique
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
   taskEntries TaskEntry[]
+
+  // --- Here are the additions ---
+  status      ProjectStatus @default(ACTIVE)
+  projectCode String?       @unique
+  description String?
+  clientName  String?
+  projectType ProjectType   @default(GENERAL)
+  startDate   DateTime?
+  endDate     DateTime?
 }
 
 model TaskEntry {
@@ -186,4 +195,16 @@ enum ApprovalStatus {
   APPROVED
   REJECTED
   CANCELLED
+}
+
+// --- Here are the additions ---
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum ProjectType {
+  CLIENT_WORK
+  INTERNAL_PRODUCT
+  GENERAL
 }

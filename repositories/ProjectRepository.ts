@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { ProjectStatus } from '@prisma/client'
 
 /**
  * Fetches all projects from the database, ordered by name.
@@ -8,6 +9,11 @@ import { prisma } from '@/lib/prisma'
 export async function getAllProjects() {
   try {
     const projects = await prisma.project.findMany({
+      where: {
+        status: {
+          not: ProjectStatus.ARCHIVED,
+        },
+      },
       orderBy: {
         id: 'asc',
       },

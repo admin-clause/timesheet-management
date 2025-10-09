@@ -1,10 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -12,8 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Table,
   TableBody,
@@ -22,6 +19,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Textarea } from '@/components/ui/textarea'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 const leaveTypeOptions = [
   { label: 'Sick', value: 'SICK' },
   { label: 'Vacation', value: 'VACATION' },
@@ -233,7 +233,11 @@ export function TimeOffAdminClient() {
       }
 
       const result: { month: string; created: number; skipped: number } = await response.json()
-      toast.success(`Accrual complete for ${result.month.slice(0, 7)}: created ${result.created}, skipped ${result.skipped}`)
+      toast.success(
+        `Accrual complete for ${result.month.slice(0, 7)}: created ${result.created}, skipped ${
+          result.skipped
+        }`
+      )
       await fetchTransactions()
     } catch (error) {
       console.error('Accrual trigger failed:', error)
@@ -301,7 +305,9 @@ export function TimeOffAdminClient() {
       <Card>
         <CardHeader>
           <CardTitle>Monthly Accrual</CardTitle>
-          <CardDescription>Run the automatic sick/vacation credit for a specific month.</CardDescription>
+          <CardDescription>
+            Run the automatic sick/vacation credit for a specific month.
+          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className="space-y-2">
@@ -320,13 +326,17 @@ export function TimeOffAdminClient() {
               id="accrual-amount"
               type="number"
               min={0.25}
-              step={0.25}
+              step={0.5}
               value={accrualAmount}
               onChange={event => setAccrualAmount(Number(event.target.value))}
             />
           </div>
           <div className="flex items-end">
-            <Button onClick={handleAccrualTrigger} disabled={isAccruing} className="w-full md:w-auto">
+            <Button
+              onClick={handleAccrualTrigger}
+              disabled={isAccruing}
+              className="w-full md:w-auto"
+            >
               {isAccruing ? 'Running...' : 'Run Accrual'}
             </Button>
           </div>
@@ -367,7 +377,10 @@ export function TimeOffAdminClient() {
 
           <div className="space-y-2">
             <Label htmlFor="leave-type-select">Leave Type</Label>
-            <Select value={selectedLeaveType} onValueChange={value => setSelectedLeaveType(value as LeaveTypeValue)}>
+            <Select
+              value={selectedLeaveType}
+              onValueChange={value => setSelectedLeaveType(value as LeaveTypeValue)}
+            >
               <SelectTrigger id="leave-type-select">
                 <SelectValue />
               </SelectTrigger>
@@ -383,7 +396,10 @@ export function TimeOffAdminClient() {
 
           <div className="space-y-2">
             <Label htmlFor="entry-kind-select">Entry Kind</Label>
-            <Select value={entryKind} onValueChange={value => setEntryKind(value as EntryKindValue)}>
+            <Select
+              value={entryKind}
+              onValueChange={value => setEntryKind(value as EntryKindValue)}
+            >
               <SelectTrigger id="entry-kind-select">
                 <SelectValue />
               </SelectTrigger>
@@ -402,13 +418,14 @@ export function TimeOffAdminClient() {
             <Input
               id="days-input"
               type="number"
-              step={0.25}
+              step={0.5}
               value={daysValue}
               onChange={event => setDaysValue(event.target.value)}
               placeholder="Enter days (positive or negative)"
             />
             <p className="text-xs text-muted-foreground">
-              Usage entries should be positive (system subtracts automatically). Adjustments accept positive or negative values.
+              Usage entries should be positive (system subtracts automatically). Adjustments accept
+              positive or negative values.
             </p>
           </div>
 
@@ -470,7 +487,10 @@ export function TimeOffAdminClient() {
           <div className="grid gap-4 md:grid-cols-5">
             <div className="space-y-2">
               <Label htmlFor="history-scope">Scope</Label>
-              <Select value={historyScope} onValueChange={value => setHistoryScope(value as 'selected' | 'all')}>
+              <Select
+                value={historyScope}
+                onValueChange={value => setHistoryScope(value as 'selected' | 'all')}
+              >
                 <SelectTrigger id="history-scope">
                   <SelectValue />
                 </SelectTrigger>
@@ -538,7 +558,12 @@ export function TimeOffAdminClient() {
             </div>
 
             <div className="flex items-end">
-              <Button variant="outline" onClick={() => void fetchTransactions()} disabled={isLoadingTransactions} className="w-full">
+              <Button
+                variant="outline"
+                onClick={() => void fetchTransactions()}
+                disabled={isLoadingTransactions}
+                className="w-full"
+              >
                 {isLoadingTransactions ? 'Refreshing...' : 'Refresh'}
               </Button>
             </div>
@@ -551,11 +576,11 @@ export function TimeOffAdminClient() {
               <TableHeader>
                 <TableRow>
                   <TableHead>User</TableHead>
-              <TableHead>Requested Type</TableHead>
-              <TableHead>Stored Type</TableHead>
-              <TableHead>Kind</TableHead>
-              <TableHead className="text-right">Days</TableHead>
-              <TableHead>Effective</TableHead>
+                  <TableHead>Requested Type</TableHead>
+                  <TableHead>Stored Type</TableHead>
+                  <TableHead>Kind</TableHead>
+                  <TableHead className="text-right">Days</TableHead>
+                  <TableHead>Effective</TableHead>
                   <TableHead>Period</TableHead>
                   <TableHead>Note</TableHead>
                   <TableHead>Recorded</TableHead>
@@ -579,7 +604,9 @@ export function TimeOffAdminClient() {
                     const userLabel = userNameById.get(tx.userId) ?? `User ${tx.userId}`
                     const effective = new Date(tx.effectiveDate).toLocaleDateString()
                     const period = tx.periodStart
-                      ? `${new Date(tx.periodStart).toLocaleDateString()} → ${tx.periodEnd ? new Date(tx.periodEnd).toLocaleDateString() : ''}`
+                      ? `${new Date(tx.periodStart).toLocaleDateString()} → ${
+                          tx.periodEnd ? new Date(tx.periodEnd).toLocaleDateString() : ''
+                        }`
                       : '-'
                     const recorded = new Date(tx.createdAt).toLocaleString()
                     return (

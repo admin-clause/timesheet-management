@@ -271,12 +271,12 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
                 {weekDays.map(day => (
                   <TableCell key={formatDate(day)} className="w-16">
                     <Input
-                      className="text-right pr-1 appearance-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      className="text-right pr-1 appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                       type="number"
                       inputMode="decimal"
                       min={0}
                       max={8}
-                      step={0.25}
+                      step={0.5}
                       value={
                         formatDate(new Date(entry.date)) === formatDate(day) ? entry.hours : ''
                       }

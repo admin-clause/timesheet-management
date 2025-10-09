@@ -1,12 +1,18 @@
 'use client'
 
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 const leaveTypeOptions = [
@@ -98,7 +104,10 @@ export function TimeOffRequestForm({ onSubmitted }: Props) {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="leave-type">Leave Type</Label>
-            <Select value={requestedType} onValueChange={value => setRequestedType(value as LeaveTypeValue)}>
+            <Select
+              value={requestedType}
+              onValueChange={value => setRequestedType(value as LeaveTypeValue)}
+            >
               <SelectTrigger id="leave-type">
                 <SelectValue />
               </SelectTrigger>
@@ -117,22 +126,34 @@ export function TimeOffRequestForm({ onSubmitted }: Props) {
             <Input
               id="total-days"
               type="number"
-              step={0.25}
-              min={0.25}
+              step={0.5}
+              min={0.5}
               value={totalDays}
               onChange={event => setTotalDays(event.target.value)}
             />
-            <p className="text-xs text-muted-foreground">Include partial days; the total must be positive.</p>
+            <p className="text-xs text-muted-foreground">
+              Include partial days; the total must be positive.
+            </p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="period-start">Start Date</Label>
-            <Input id="period-start" type="date" value={periodStart} onChange={event => setPeriodStart(event.target.value)} />
+            <Input
+              id="period-start"
+              type="date"
+              value={periodStart}
+              onChange={event => setPeriodStart(event.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="period-end">End Date</Label>
-            <Input id="period-end" type="date" value={periodEnd} onChange={event => setPeriodEnd(event.target.value)} />
+            <Input
+              id="period-end"
+              type="date"
+              value={periodEnd}
+              onChange={event => setPeriodEnd(event.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
@@ -140,7 +161,7 @@ export function TimeOffRequestForm({ onSubmitted }: Props) {
             <Input
               id="partial-start"
               type="number"
-              step={0.25}
+              step={0.5}
               min={0}
               value={partialStartDays}
               onChange={event => setPartialStartDays(event.target.value)}
@@ -153,7 +174,7 @@ export function TimeOffRequestForm({ onSubmitted }: Props) {
             <Input
               id="partial-end"
               type="number"
-              step={0.25}
+              step={0.5}
               min={0}
               value={partialEndDays}
               onChange={event => setPartialEndDays(event.target.value)}

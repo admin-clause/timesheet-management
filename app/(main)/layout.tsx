@@ -1,10 +1,10 @@
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from '@/components/app-sidebar'
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 
 export default function MainAppLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <SidebarProvider>
@@ -16,5 +16,5 @@ export default function MainAppLayout({
         </main>
       </div>
     </SidebarProvider>
-  );
+  )
 }

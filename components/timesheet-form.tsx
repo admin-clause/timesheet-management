@@ -125,7 +125,7 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
     if (Number.isNaN(hours)) {
       return
     }
-    const boundedHours = Math.min(Math.max(hours, 0), 8)
+    const boundedHours = Math.min(Math.max(hours, 0), 40)
     setTaskEntries(currentEntries =>
       currentEntries.map(entry => {
         if (entry.id === id) {
@@ -278,7 +278,7 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
                       type="number"
                       inputMode="decimal"
                       min={0}
-                      max={8}
+                      max={40}
                       step={0.5}
                       value={
                         formatDate(new Date(entry.date)) === formatDate(day) ? entry.hours : ''

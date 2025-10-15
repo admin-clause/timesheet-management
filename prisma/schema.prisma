@@ -82,16 +82,22 @@ model Project {
 }
 
 model TaskEntry {
-  id       Int      @id @default(autoincrement())
-  date     DateTime @db.Date
-  hours    Decimal
-  taskName String
+  id        Int      @id @default(autoincrement())
+  weekStartDate DateTime @db.Date
+  hoursMon  Decimal  @default(0)
+  hoursTue  Decimal  @default(0)
+  hoursWed  Decimal  @default(0)
+  hoursThu  Decimal  @default(0)
+  hoursFri  Decimal  @default(0)
+  taskName  String
 
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId Int
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
 
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId Int
+
+  @@unique([userId, projectId, taskName, weekStartDate])
 }
 
 model TimeOffBalance {

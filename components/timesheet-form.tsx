@@ -27,13 +27,21 @@ import { AutocompleteInput } from './ui/autocomplete-input'
 
 // --- Type Definitions ---
 type Project = { id: number; name: string }
+
+// This type now represents a full week's entry for a single task
 type TaskEntry = {
   id: number | string // Use string for new, temporary IDs
-  date: string
-  hours: number
-  taskName: string
+  weekStartDate: string
   projectId: number
+  taskName: string
+  hoursMon: number
+  hoursTue: number
+  hoursWed: number
+  hoursThu: number
+  hoursFri: number
 }
+
+const DAY_FIELDS: (keyof TaskEntry)[] = ['hoursMon', 'hoursTue', 'hoursWed', 'hoursThu', 'hoursFri']
 
 // --- Helper Functions ---
 const formatDate = (date: Date) => date.toISOString().split('T')[0]
@@ -63,7 +71,7 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
   const [isSaving, setIsSaving] = useState(false)
 
   const weekDays = useMemo(() => getWeekDays(currentDate), [currentDate])
-  const allTaskNames = useTaskNameCache()
+  const allTaskNames = useTaskNameCache(targetUserId)
 
   // --- Data Fetching ---
   useEffect(() => {
@@ -95,18 +103,10 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
   }, [currentDate, targetUserId])
 
   // --- Event Handlers ---
-  function handlePrevWeek() {
+  const handleWeekChange = (offset: number) => {
     setCurrentDate(d => {
       const newDate = new Date(d)
-      newDate.setDate(newDate.getDate() - 7)
-      return newDate
-    })
-  }
-
-  function handleNextWeek() {
-    setCurrentDate(d => {
-      const newDate = new Date(d)
-      newDate.setDate(newDate.getDate() + 7)
+      newDate.setDate(newDate.getDate() + offset)
       return newDate
     })
   }
@@ -121,18 +121,16 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
     )
   }
 
-  const handleHoursChange = (id: number | string, day: Date, hours: number) => {
-    if (Number.isNaN(hours)) {
-      return
-    }
+  const handleHoursChange = (id: number | string, dayIndex: number, hours: number) => {
+    if (Number.isNaN(hours) || dayIndex < 0 || dayIndex > 4) return
+
     const boundedHours = Math.min(Math.max(hours, 0), 40)
+    const fieldName = DAY_FIELDS[dayIndex]
+
     setTaskEntries(currentEntries =>
-      currentEntries.map(entry => {
-        if (entry.id === id) {
-          return { ...entry, date: formatDate(day), hours: boundedHours }
-        }
-        return entry
-      })
+      currentEntries.map(entry =>
+        entry.id === id ? { ...entry, [fieldName]: boundedHours } : entry
+      )
     )
   }
 
@@ -141,8 +139,12 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
       id: `new-${Date.now()}`,
       projectId: projects[0]?.id,
       taskName: '',
-      date: formatDate(weekDays[0]),
-      hours: 0,
+      weekStartDate: formatDate(weekDays[0]),
+      hoursMon: 0,
+      hoursTue: 0,
+      hoursWed: 0,
+      hoursThu: 0,
+      hoursFri: 0,
     }
     setTaskEntries(current => [...current, newEntry])
   }
@@ -150,7 +152,6 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
   const handleDeleteRow = async (id: number | string) => {
     setTaskEntries(current => current.filter(entry => entry.id !== id))
     if (typeof id === 'number') {
-      // Only call API for existing entries
       const params = new URLSearchParams()
       if (typeof targetUserId === 'number') {
         params.append('userId', targetUserId.toString())
@@ -162,70 +163,79 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
 
   const handleSave = async () => {
     setIsSaving(true)
-    const entriesToSave = taskEntries.filter(
-      entry => entry.hours > 0 && entry.taskName && entry.projectId
-    )
+
+    const entriesToSave = taskEntries
+      .map(entry => {
+        const totalHours = DAY_FIELDS.reduce((sum, field) => sum + Number(entry[field] || 0), 0)
+        return { ...entry, totalHours }
+      })
+      .filter(entry => entry.totalHours > 0 && entry.taskName && entry.projectId)
+
     const params = new URLSearchParams()
     if (typeof targetUserId === 'number') {
       params.append('userId', targetUserId.toString())
     }
 
-    const response = await fetch(
-      `/api/task-entries${params.toString() ? `?${params.toString()}` : ''}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(entriesToSave),
+    try {
+      const response = await fetch(
+        `/api/task-entries${params.toString() ? `?${params.toString()}` : ''}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(entriesToSave),
+        }
+      )
+
+      if (response.ok) {
+        toast.success(
+          typeof targetUserId === 'number'
+            ? 'Timesheet saved for selected user!'
+            : 'Timesheet saved successfully!'
+        )
+        // Refetch data after saving to get new IDs and confirm changes
+        const dateStr = formatDate(currentDate)
+        const refetchParams = new URLSearchParams({ date: dateStr })
+        if (typeof targetUserId === 'number') {
+          refetchParams.append('userId', targetUserId.toString())
+        }
+        const refetchResponse = await fetch(`/api/task-entries?${refetchParams.toString()}`)
+        if (refetchResponse.ok) setTaskEntries(await refetchResponse.json())
+      } else {
+        toast.error('Failed to save timesheet. Please try again.')
       }
-    )
-
-    if (response.ok) {
-      const message =
-        typeof targetUserId === 'number'
-          ? 'Timesheet saved for selected user!'
-          : 'Timesheet saved successfully!'
-      toast.success(message)
-    } else {
-      toast.error('Failed to save timesheet. Please try again.')
+    } catch (error) {
+      console.error('Save Error:', error)
+      toast.error('An unexpected error occurred while saving.')
+    } finally {
+      setIsSaving(false)
     }
-
-    // Refetch data after saving to get new IDs and confirm changes
-    const dateStr = formatDate(currentDate)
-    const refetchParams = new URLSearchParams({ date: dateStr })
-    if (typeof targetUserId === 'number') {
-      refetchParams.append('userId', targetUserId.toString())
-    }
-    const refetchResponse = await fetch(`/api/task-entries?${refetchParams.toString()}`)
-    if (refetchResponse.ok) setTaskEntries(await refetchResponse.json())
-
-    setIsSaving(false)
   }
 
   // --- Calculations for UI ---
   const { columnTotals, grandTotal, projectSummary } = useMemo(() => {
-    const totals = weekDays.map(day =>
-      taskEntries
-        .filter(entry => formatDate(new Date(entry.date)) === formatDate(day))
-        .reduce((acc, entry) => acc + (Number(entry.hours) || 0), 0)
+    const totals = DAY_FIELDS.map(field =>
+      taskEntries.reduce((acc, entry) => acc + (Number(entry[field]) || 0), 0)
     )
     const grand = totals.reduce((acc, total) => acc + total, 0)
+
     const summary: { [key: string]: number } = {}
     taskEntries.forEach(entry => {
       const project = projects.find(p => p.id === entry.projectId)
       if (project) {
-        summary[project.name] = (summary[project.name] || 0) + (Number(entry.hours) || 0)
+        const totalHours = DAY_FIELDS.reduce((sum, field) => sum + Number(entry[field] || 0), 0)
+        summary[project.name] = (summary[project.name] || 0) + totalHours
       }
     })
     return { columnTotals: totals, grandTotal: grand, projectSummary: summary }
-  }, [taskEntries, projects, weekDays])
+  }, [taskEntries, projects])
 
   // --- Render Logic ---
   return (
     <div className="space-y-6">
       <div className="flex justify-center items-center gap-4">
-        <Button onClick={handlePrevWeek}>Previous Week</Button>
+        <Button onClick={() => handleWeekChange(-7)}>Previous Week</Button>
         <p className="text-lg font-medium">Week of {weekDays[0].toLocaleDateString()}</p>
-        <Button onClick={handleNextWeek}>Next Week</Button>
+        <Button onClick={() => handleWeekChange(7)}>Next Week</Button>
       </div>
 
       {isLoading ? (
@@ -237,7 +247,7 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
               <TableHead className="w-[200px]">Project</TableHead>
               <TableHead className="w-[280px]">Task</TableHead>
               {weekDays.map(day => (
-                <TableHead key={day.toISOString()} className="w-16 text-right">
+                <TableHead key={day.toISOString()} className="w-20 text-right">
                   {day.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}
                 </TableHead>
               ))}
@@ -245,66 +255,69 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {taskEntries.map(entry => (
-              <TableRow key={entry.id}>
-                <TableCell>
-                  <Select
-                    value={String(entry.projectId)}
-                    onValueChange={value => handleUpdateEntry(entry.id, 'projectId', Number(value))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projects.map(p => (
-                        <SelectItem key={p.id} value={String(p.id)}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <AutocompleteInput
-                    value={entry.taskName}
-                    onChange={e => handleUpdateEntry(entry.id, 'taskName', e.target.value)}
-                    suggestions={allTaskNames}
-                  />
-                </TableCell>
-                {weekDays.map(day => (
-                  <TableCell key={formatDate(day)} className="w-16">
-                    <Input
-                      className="text-right pr-1 appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      max={40}
-                      step={0.5}
-                      value={
-                        formatDate(new Date(entry.date)) === formatDate(day) ? entry.hours : ''
+            {taskEntries.map(entry => {
+              const rowTotal = DAY_FIELDS.reduce((sum, field) => sum + Number(entry[field] || 0), 0)
+              return (
+                <TableRow key={entry.id}>
+                  <TableCell>
+                    <Select
+                      value={String(entry.projectId)}
+                      onValueChange={value =>
+                        handleUpdateEntry(entry.id, 'projectId', Number(value))
                       }
-                      onChange={e => {
-                        const raw = e.target.value
-                        const parsed = raw === '' ? 0 : parseFloat(raw)
-                        handleHoursChange(entry.id, day, parsed)
-                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {projects.map(p => (
+                          <SelectItem key={p.id} value={String(p.id)}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <AutocompleteInput
+                      value={entry.taskName}
+                      onChange={e => handleUpdateEntry(entry.id, 'taskName', e.target.value)}
+                      suggestions={allTaskNames}
                     />
                   </TableCell>
-                ))}
-                <TableCell className="w-[90px]">
-                  <div className="flex items-center justify-end gap-2">
-                    <span className="font-medium">{entry.hours.toFixed(1)}</span>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => handleDeleteRow(entry.id)}
-                    >
-                      X
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                  {DAY_FIELDS.map((field, dayIndex) => (
+                    <TableCell key={field} className="w-20">
+                      <Input
+                        className="text-right pr-1 appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        max={40}
+                        step={0.5}
+                        value={entry[field] || ''}
+                        onChange={e => {
+                          const raw = e.target.value
+                          const parsed = raw === '' ? 0 : parseFloat(raw)
+                          handleHoursChange(entry.id, dayIndex, parsed)
+                        }}
+                      />
+                    </TableCell>
+                  ))}
+                  <TableCell className="w-[90px]">
+                    <div className="flex items-center justify-end gap-2">
+                      <span className="font-medium">{rowTotal.toFixed(1)}</span>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => handleDeleteRow(entry.id)}
+                      >
+                        X
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
           <TableFooter>
             <TableRow>
@@ -312,7 +325,7 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
                 Total Hours
               </TableCell>
               {columnTotals.map((total, i) => (
-                <TableCell key={i} className="w-16 text-right font-bold">
+                <TableCell key={i} className="w-20 text-right font-bold">
                   {total > 0 ? total.toFixed(1) : '-'}
                 </TableCell>
               ))}

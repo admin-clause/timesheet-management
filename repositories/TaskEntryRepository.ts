@@ -1,43 +1,60 @@
 import { prisma } from '@/lib/prisma'
 
-// Define the type for the input data for a single task entry
+// Define the type for the input data for a weekly task entry.
 // It can optionally have an id if it's an existing entry.
 export type TaskEntryInput = {
   id?: number
-  date: Date
-  hours: number
+  weekStartDate: Date
+  hoursMon?: number
+  hoursTue?: number
+  hoursWed?: number
+  hoursThu?: number
+  hoursFri?: number
   taskName: string
   projectId: number
 }
 
 /**
- * Creates or updates a batch of task entries for a specific user.
+ * Creates or updates a batch of weekly task entries for a specific user.
  * This function uses a transaction to ensure all operations succeed or fail together.
  * @param userId The ID of the user submitting the entries.
- * @param entries An array of task entry objects to be created or updated.
+ * @param entries An array of weekly task entry objects to be created or updated.
  */
 export async function upsertTaskEntries(userId: number, entries: TaskEntryInput[]) {
   const operations = entries.map(entry => {
-    const { id, ...data } = entry
-    // Dates from JSON will be strings, so convert them
-    const entryData = { ...data, date: new Date(data.date), userId }
+    // The incoming entry from the client might have extra properties like `totalHours`.
+    // We create a payload with only the fields that exist in the schema.
+    const { weekStartDate, projectId, taskName, hoursMon, hoursTue, hoursWed, hoursThu, hoursFri } = entry as any
 
-    if (id && typeof id === 'number') {
-      // If an ID is provided, update the existing entry.
-      // We also ensure the user owns this entry.
-      return prisma.taskEntry.updateMany({
-        where: {
-          id,
-          userId,
-        },
-        data: entryData,
-      })
-    } else {
-      // If no ID is provided, create a new entry.
-      return prisma.taskEntry.create({
-        data: entryData,
-      })
+    const weekStartDateObj = new Date(weekStartDate)
+
+    const dataPayload = {
+      hoursMon: hoursMon || 0,
+      hoursTue: hoursTue || 0,
+      hoursWed: hoursWed || 0,
+      hoursThu: hoursThu || 0,
+      hoursFri: hoursFri || 0,
     }
+
+    return prisma.taskEntry.upsert({
+      where: {
+        // Use the unique composite key defined in the schema
+        userId_projectId_taskName_weekStartDate: {
+          userId,
+          projectId,
+          taskName,
+          weekStartDate: weekStartDateObj,
+        },
+      },
+      update: dataPayload, // Use the clean payload
+      create: {
+        userId,
+        weekStartDate: weekStartDateObj,
+        projectId,
+        taskName,
+        ...dataPayload, // Spread the clean payload
+      },
+    })
   })
 
   try {
@@ -51,7 +68,7 @@ export async function upsertTaskEntries(userId: number, entries: TaskEntryInput[
 
 /**
  * Fetches all task entries for a specific user within a given week.
- * The week is calculated as Monday to Friday based on the provided date.
+ * The week is calculated based on the provided date.
  * @param userId The ID of the user.
  * @param date A date within the desired week.
  * @returns A promise that resolves to an array of task entries.
@@ -60,24 +77,17 @@ export async function getTaskEntriesForWeek(userId: number, date: Date) {
   const dayOfWeek = date.getDay() // Sunday = 0, Monday = 1, etc.
   const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
 
-  const monday = new Date(date)
-  monday.setDate(date.getDate() - distanceToMonday)
-  monday.setHours(0, 0, 0, 0)
-
-  const friday = new Date(monday)
-  friday.setDate(monday.getDate() + 4)
-  friday.setHours(23, 59, 59, 999)
+  const weekStartDate = new Date(date)
+  weekStartDate.setDate(date.getDate() - distanceToMonday)
+  weekStartDate.setHours(0, 0, 0, 0)
 
   try {
     return await prisma.taskEntry.findMany({
       where: {
         userId,
-        date: {
-          gte: monday,
-          lte: friday,
-        },
+        weekStartDate,
       },
-      orderBy: [{ date: 'asc' }, { id: 'asc' }],
+      orderBy: { id: 'asc' },
     })
   } catch (error) {
     console.error('Database Error:', error)
@@ -108,9 +118,9 @@ export async function deleteTaskEntry(userId: number, taskEntryId: number) {
   }
 }
 
-export async function getPreviousTaskNames(userId: number, limit: number = 10) {
+export async function getPreviousTaskNames(userId: number) {
   try {
-    return await prisma.taskEntry.findMany({
+    const entries = await prisma.taskEntry.findMany({
       select: {
         taskName: true,
       },
@@ -124,9 +134,11 @@ export async function getPreviousTaskNames(userId: number, limit: number = 10) {
         id: 'desc',
       },
       distinct: ['taskName'],
+      take: 15, // Limit the number of suggestions
     })
+    return entries.map(e => e.taskName)
   } catch (error) {
     console.error('Database Error:', error)
-    throw new Error('Failed to fetch task entries.')
+    throw new Error('Failed to fetch previous task names.')
   }
 }

@@ -9,39 +9,63 @@ import ExcelJS from 'exceljs'
 export async function getReportData(monthParam: string) {
   const year = parseInt(monthParam.split('-')[0])
   const month = parseInt(monthParam.split('-')[1])
-  const startDate = new Date(year, month - 1, 1)
-  const endDate = new Date(year, month, 0, 23, 59, 59, 999)
+  const monthStartDate = new Date(year, month - 1, 1)
+  const monthEndDate = new Date(year, month, 0)
+
+  // To ensure we get all weeks that overlap with the month, we create a slightly larger
+  // date range for the query. We look for weeks that start from up to 6 days before
+  // the beginning of the month up to the last day of the month.
+  const queryStartDate = new Date(year, month - 1, 1 - 6)
 
   const entries = await prisma.taskEntry.findMany({
-    where: { date: { gte: startDate, lte: endDate } },
+    where: { weekStartDate: { gte: queryStartDate, lte: monthEndDate } },
     include: { project: true, user: true },
   })
 
   // --- Pivot Aggregation Logic ---
   const usersMap = new Map()
   const projectsMap = new Map()
+  const dailyHoursFields: (keyof (typeof entries)[0])[] = [
+    'hoursMon',
+    'hoursTue',
+    'hoursWed',
+    'hoursThu',
+    'hoursFri',
+  ]
 
   for (const entry of entries) {
-    const hours = Number(entry.hours)
     if (!entry.user || !entry.project) continue
 
-    const userName = entry.user.name || entry.user.email || `User ID: ${entry.userId}`
-    if (!usersMap.has(userName)) {
-      usersMap.set(userName, { name: userName, totalHours: 0, hoursByProject: {} })
-    }
-    const userData = usersMap.get(userName)
-    userData.totalHours += hours
-    const projectIdStr = String(entry.projectId)
-    userData.hoursByProject[projectIdStr] = (userData.hoursByProject[projectIdStr] || 0) + hours
+    for (let i = 0; i < dailyHoursFields.length; i++) {
+      const dayDate = new Date(entry.weekStartDate)
+      dayDate.setDate(dayDate.getDate() + i)
 
-    if (!projectsMap.has(entry.projectId)) {
-      projectsMap.set(entry.projectId, {
-        id: entry.projectId,
-        name: entry.project.name,
-        totalHours: 0,
-      })
+      // Only include hours for days that are within the selected month
+      if (dayDate.getMonth() !== month - 1) {
+        continue
+      }
+
+      const hours = Number(entry[dailyHoursFields[i]])
+      if (hours === 0) continue
+
+      const userName = entry.user.name || entry.user.email || `User ID: ${entry.userId}`
+      if (!usersMap.has(userName)) {
+        usersMap.set(userName, { name: userName, totalHours: 0, hoursByProject: {} })
+      }
+      const userData = usersMap.get(userName)
+      userData.totalHours += hours
+      const projectIdStr = String(entry.projectId)
+      userData.hoursByProject[projectIdStr] = (userData.hoursByProject[projectIdStr] || 0) + hours
+
+      if (!projectsMap.has(entry.projectId)) {
+        projectsMap.set(entry.projectId, {
+          id: entry.projectId,
+          name: entry.project.name,
+          totalHours: 0,
+        })
+      }
+      projectsMap.get(entry.projectId).totalHours += hours
     }
-    projectsMap.get(entry.projectId).totalHours += hours
   }
 
   // --- Format Data ---

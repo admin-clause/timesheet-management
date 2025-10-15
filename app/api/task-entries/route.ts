@@ -92,9 +92,14 @@ export async function GET(request: NextRequest) {
 
   try {
     const entries = await getTaskEntriesForWeek(targetUserId, date);
-    const entriesAsNumbers = entries.map((entry: TaskEntry) => ({
+    // Convert Decimal hour values to numbers for JSON serialization
+    const entriesAsNumbers = entries.map(entry => ({
       ...entry,
-      hours: Number(entry.hours)
+      hoursMon: Number(entry.hoursMon),
+      hoursTue: Number(entry.hoursTue),
+      hoursWed: Number(entry.hoursWed),
+      hoursThu: Number(entry.hoursThu),
+      hoursFri: Number(entry.hoursFri),
     }));
     return NextResponse.json(entriesAsNumbers);
   } catch (error) {

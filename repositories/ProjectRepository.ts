@@ -1,19 +1,21 @@
 import { prisma } from '@/lib/prisma'
 import { ProjectStatus } from '@prisma/client'
 
+type ProjectFilters = {
+  status?: ProjectStatus
+}
+
 /**
- * Fetches all projects from the database, ordered by name.
+ * Fetches projects from the database, with optional filters.
+ * @param filters Optional filters to apply, e.g., { status: 'ACTIVE' }.
  * @returns A promise that resolves to an array of projects.
  * @throws Throws an error if the database query fails.
  */
-export async function getAllProjects() {
+export async function getAllProjects(filters?: ProjectFilters) {
   try {
+    const whereClause = filters?.status ? { status: filters.status } : {}
     const projects = await prisma.project.findMany({
-      where: {
-        status: {
-          not: ProjectStatus.ARCHIVED,
-        },
-      },
+      where: whereClause,
       orderBy: {
         id: 'asc',
       },
@@ -25,18 +27,27 @@ export async function getAllProjects() {
   }
 }
 
+export type ProjectCreateData = {
+  name: string
+  description?: string | null
+  status?: ProjectStatus
+  projectCode?: string | null
+  clientName?: string | null
+  projectType?: ProjectType
+  startDate?: Date | null
+  endDate?: Date | null
+}
+
 /**
  * Creates a new project.
- * @param name The name of the new project.
+ * @param data An object containing the data for the new project.
  * @returns A promise that resolves to the newly created project object.
  * @throws Throws an error if the database query fails.
  */
-export async function createProject(name: string) {
+export async function createProject(data: ProjectCreateData) {
   try {
     const newProject = await prisma.project.create({
-      data: {
-        name,
-      },
+      data,
     })
     return newProject
   } catch (error) {
@@ -45,22 +56,35 @@ export async function createProject(name: string) {
   }
 }
 
+import { ProjectType } from '@prisma/client'
+
+// ... (getAllProjects and createProject functions remain the same)
+
+export type ProjectUpdateData = {
+  name?: string
+  description?: string | null
+  status?: ProjectStatus
+  projectCode?: string | null
+  clientName?: string | null
+  projectType?: ProjectType
+  startDate?: Date | null
+  endDate?: Date | null
+}
+
 /**
- * Updates the name of a specific project.
+ * Updates a specific project with the given data.
  * @param projectId The ID of the project to update.
- * @param newName The new name for the project.
+ * @param data An object containing the fields to update.
  * @returns A promise that resolves to the updated project object.
  * @throws Throws an error if the project is not found or the update fails.
  */
-export async function updateProject(projectId: number, newName: string) {
+export async function updateProject(projectId: number, data: ProjectUpdateData) {
   try {
     const updatedProject = await prisma.project.update({
       where: {
         id: projectId,
       },
-      data: {
-        name: newName,
-      },
+      data,
     })
     return updatedProject
   } catch (error) {
@@ -68,6 +92,8 @@ export async function updateProject(projectId: number, newName: string) {
     throw new Error('Failed to update project.')
   }
 }
+
+// ... (deleteProject function remains the same)
 
 /**
  * Deletes a project by its ID.

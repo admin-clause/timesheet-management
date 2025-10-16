@@ -75,7 +75,7 @@ export function TimesheetForm({ targetUserId }: TimesheetFormProps) {
 
   // --- Data Fetching ---
   useEffect(() => {
-    fetch('/api/projects')
+    fetch('/api/projects?status=ACTIVE')
       .then(res => res.json())
       .then(setProjects)
   }, [])

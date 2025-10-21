@@ -9,7 +9,6 @@ import ExcelJS from 'exceljs'
 export async function getReportData(monthParam: string) {
   const year = parseInt(monthParam.split('-')[0])
   const month = parseInt(monthParam.split('-')[1])
-  const monthStartDate = new Date(year, month - 1, 1)
   const monthEndDate = new Date(year, month, 0)
 
   // To ensure we get all weeks that overlap with the month, we create a slightly larger
@@ -48,11 +47,19 @@ export async function getReportData(monthParam: string) {
       const hours = Number(entry[dailyHoursFields[i]])
       if (hours === 0) continue
 
-      const userName = entry.user.name || entry.user.email || `User ID: ${entry.userId}`
-      if (!usersMap.has(userName)) {
-        usersMap.set(userName, { name: userName, totalHours: 0, hoursByProject: {} })
+      const userId = entry.userId
+      if (!usersMap.has(userId)) {
+        usersMap.set(userId, {
+          id: userId,
+          firstName: entry.user.firstName,
+          lastName: entry.user.lastName,
+          totalHours: 0,
+          hoursByProject: {},
+        })
       }
-      const userData = usersMap.get(userName)
+      const userData = usersMap.get(userId)
+      if (!userData) continue
+
       userData.totalHours += hours
       const projectIdStr = String(entry.projectId)
       userData.hoursByProject[projectIdStr] = (userData.hoursByProject[projectIdStr] || 0) + hours
@@ -114,7 +121,7 @@ export async function generateReportExcel(reportData: Awaited<ReturnType<typeof 
 
   // --- Data Rows ---
   pivotData.users.forEach(user => {
-    const row: (string | number)[] = [user.name]
+    const row: (string | number)[] = [`${user.firstName || ''} ${user.lastName || ''}`.trim()]
     pivotData.projects.forEach(project => {
       row.push(user.hoursByProject[String(project.id)] || 0)
     })

@@ -16,14 +16,39 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Role } from '@prisma/client';
+import { Role, EmploymentType, EmployeeStatus } from '@prisma/client';
 
-// User type definition (password is not included)
+// User type definition matching the new schema
 type User = {
   id: number;
-  name: string | null;
-  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  companyEmail: string | null;
+  personalEmail: string | null;
+  phoneNumber: string | null;
+  employmentType: EmploymentType | null;
+  employeeStatus: EmployeeStatus | null;
+  fobNumber: string | null;
+  startDate: string | null; // Dates are strings for form inputs
+  endDate: string | null;
+  midProbationDate: string | null;
   role: Role;
+};
+
+type UserSaveBody = {
+  firstName?: string;
+  lastName?: string;
+  companyEmail?: string;
+  personalEmail?: string;
+  phoneNumber?: string;
+  employmentType?: EmploymentType | null;
+  employeeStatus?: EmployeeStatus | null;
+  fobNumber?: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  midProbationDate?: string | null;
+  role?: Role;
+  password?: string;
 };
 
 export function UserManagementClient() {
@@ -36,11 +61,22 @@ export function UserManagementClient() {
   
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
-  // Form state
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState<Role>(Role.USER);
+  // Form state consolidated into a single object
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    companyEmail: '',
+    personalEmail: '',
+    phoneNumber: '',
+    employmentType: null as EmploymentType | null,
+    employeeStatus: null as EmployeeStatus | null,
+    fobNumber: '',
+    startDate: '',
+    endDate: '',
+    midProbationDate: '',
+    password: '',
+    role: Role.USER,
+  });
 
   // --- Data Fetching ---
   const fetchUsers = async () => {
@@ -62,11 +98,49 @@ export function UserManagementClient() {
   // --- Event Handlers ---
   const openFormDialog = (user: User | null) => {
     setEditingUser(user);
-    setName(user?.name || '');
-    setEmail(user?.email || '');
-    setRole(user?.role || Role.USER);
-    setPassword(''); // Clear password field
+    if (user) {
+      setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        companyEmail: user.companyEmail || '',
+        personalEmail: user.personalEmail || '',
+        phoneNumber: user.phoneNumber || '',
+        employmentType: user.employmentType || null,
+        employeeStatus: user.employeeStatus || null,
+        fobNumber: user.fobNumber || '',
+        startDate: user.startDate || '',
+        endDate: user.endDate || '',
+        midProbationDate: user.midProbationDate || '',
+        password: '',
+        role: user.role || Role.USER,
+      });
+    } else {
+      setFormData({
+        firstName: '',
+        lastName: '',
+        companyEmail: '',
+        personalEmail: '',
+        phoneNumber: '',
+        employmentType: null,
+        employeeStatus: null,
+        fobNumber: '',
+        startDate: '',
+        endDate: '',
+        midProbationDate: '',
+        password: '',
+        role: Role.USER,
+      });
+    }
     setIsFormDialogOpen(true);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const openDeleteDialog = (user: User) => {
@@ -76,13 +150,23 @@ export function UserManagementClient() {
 
   const handleSave = async () => {
     const isUpdating = !!editingUser;
-    const url = isUpdating ? `/api/users/${editingUser.id}` : '/api/users';
+    const url = isUpdating ? `/api/users/${editingUser!.id}` : '/api/users';
     const method = isUpdating ? 'PUT' : 'POST';
 
-    const body: { name: string; email: string; role: Role; password?: string } = { name, email, role };
-    if (!isUpdating) {
-      body.password = password;
+    const body: UserSaveBody = { ...formData };
+    if (isUpdating) {
+      delete body.password;
+    } else {
+      if (!body.password) {
+        toast.error('Password is required for new users.');
+        return;
+      }
     }
+
+    // Convert empty date strings to null
+    if (body.startDate === '') body.startDate = null;
+    if (body.endDate === '') body.endDate = null;
+    if (body.midProbationDate === '') body.midProbationDate = null;
 
     try {
       const response = await fetch(url, {
@@ -139,8 +223,9 @@ export function UserManagementClient() {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead>First Name</TableHead>
+                <TableHead>Last Name</TableHead>
+                <TableHead>Company Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -149,8 +234,9 @@ export function UserManagementClient() {
               {users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>{user.id}</TableCell>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.firstName}</TableCell>
+                  <TableCell>{user.lastName}</TableCell>
+                  <TableCell>{user.companyEmail}</TableCell>
                   <TableCell>{user.role}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button variant="outline" size="sm" onClick={() => openFormDialog(user)}>Edit</Button>
@@ -171,22 +257,72 @@ export function UserManagementClient() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">Name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" />
+              <Label htmlFor="firstName" className="text-right">First Name</Label>
+              <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="col-span-3" />
+              <Label htmlFor="lastName" className="text-right">Last Name</Label>
+              <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="companyEmail" className="text-right">Company Email</Label>
+              <Input id="companyEmail" name="companyEmail" type="email" value={formData.companyEmail} onChange={handleChange} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="personalEmail" className="text-right">Personal Email</Label>
+              <Input id="personalEmail" name="personalEmail" type="email" value={formData.personalEmail} onChange={handleChange} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="phoneNumber" className="text-right">Phone</Label>
+              <Input id="phoneNumber" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="fobNumber" className="text-right">FOB Number</Label>
+              <Input id="fobNumber" name="fobNumber" value={formData.fobNumber} onChange={handleChange} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="startDate" className="text-right">Start Date</Label>
+              <Input id="startDate" name="startDate" type="date" value={formData.startDate} onChange={handleChange} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="endDate" className="text-right">End Date</Label>
+              <Input id="endDate" name="endDate" type="date" value={formData.endDate} onChange={handleChange} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="midProbationDate" className="text-right">Mid Probation</Label>
+              <Input id="midProbationDate" name="midProbationDate" type="date" value={formData.midProbationDate} onChange={handleChange} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="employmentType" className="text-right">Emp. Type</Label>
+              <Select value={formData.employmentType || ''} onValueChange={(value) => handleSelectChange('employmentType', value)}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(EmploymentType).map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="employeeStatus" className="text-right">Emp. Status</Label>
+              <Select value={formData.employeeStatus || ''} onValueChange={(value) => handleSelectChange('employeeStatus', value)}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(EmployeeStatus).map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             {!editingUser && (
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="password" className="text-right">Password</Label>
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="col-span-3" />
+                <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} className="col-span-3" />
               </div>
             )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="role" className="text-right">Role</Label>
-              <Select value={role} onValueChange={(value: Role) => setRole(value)}>
+              <Select value={formData.role} onValueChange={(value: Role) => handleSelectChange('role', value)}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
@@ -210,7 +346,7 @@ export function UserManagementClient() {
           <DialogHeader>
             <DialogTitle>Are you sure?</DialogTitle>
           </DialogHeader>
-          <p>You are about to delete the user &quot;<strong>{editingUser?.name || editingUser?.email}</strong>&quot;.</p>
+          <p>You are about to delete the user &quot;<strong>{`${editingUser?.firstName || ''} ${editingUser?.lastName || ''}`.trim() || editingUser?.companyEmail}</strong>&quot;.</p>
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
             <Button variant="destructive" onClick={handleConfirmDelete}>Confirm Delete</Button>

@@ -21,6 +21,7 @@ export async function GET() {
     const users = await getAllUsers();
     // Never return passwords, even hashed ones, in an API response
     const usersWithoutPasswords = users.map(user => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password: _, ...userWithoutPassword } = user;
       return userWithoutPassword;
     });
@@ -52,9 +53,8 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Bad Request: role must be ADMIN or USER', { status: 400 });
     }
 
-    const newUser = await createUser({ name, email, password, role });
-    const { password: _, ...userWithoutPassword } = newUser;
-    return NextResponse.json(userWithoutPassword, { status: 201 });
+    await createUser(body);
+    return NextResponse.json({ message: 'User created successfully' }, { status: 201 });
 
   } catch (error) {
     if (error instanceof Error && error.message.includes('Unique constraint failed')) {

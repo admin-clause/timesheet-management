@@ -127,7 +127,7 @@ export async function AppSidebar() {
           <SidebarGroupLabel>Account</SidebarGroupLabel>
           <SidebarGroupContent>
             <div className="px-3 py-2 text-sm font-medium">
-              <p>{session?.user?.name || session?.user?.email}</p>
+              <p>{`${session?.user?.firstName || ''} ${session?.user?.lastName || ''}`.trim() || session?.user?.email}</p>
             </div>
             <SidebarMenu>
               <SidebarMenuItem>

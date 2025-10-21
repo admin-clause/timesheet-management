@@ -36,9 +36,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return new NextResponse('Bad Request: role must be ADMIN or USER', { status: 400 })
     }
 
-    const updatedUser = await updateUser(userId, { name, email, role })
-    const { password: _, ...userWithoutPassword } = updatedUser
-    return NextResponse.json(userWithoutPassword)
+    await updateUser(userId, body);
+    return NextResponse.json({ message: 'User updated successfully' });
   } catch (error) {
     if (error instanceof Error && error.message.includes('Unique constraint failed')) {
       return new NextResponse('Conflict: A user with this email already exists', { status: 409 })

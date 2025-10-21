@@ -60,9 +60,12 @@ type AdminTransaction = {
 
 type ManagedUser = {
   id: number
-  name: string | null
-  email: string
+  firstName: string | null
+  lastName: string | null
+  companyEmail: string | null
   role: 'ADMIN' | 'USER'
+  startDate: string | null
+  initialSickLeaveGranted: boolean
 }
 
 const defaultMonth = () => {
@@ -94,13 +97,19 @@ const formatKindLabel = (value: string | undefined) => {
 }
 
 export function TimeOffAdminClient() {
+  const ninetyDaysAgo = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 90);
+    return d;
+  }, []);
+
   const [users, setUsers] = useState<ManagedUser[]>([])
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
   const [isLoadingUsers, setIsLoadingUsers] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [grantSickLeaveUserId, setGrantSickLeaveUserId] = useState<number | null>(null)
 
   const [accrualMonth, setAccrualMonth] = useState(defaultMonth)
-  const [accrualAmount, setAccrualAmount] = useState(1)
   const [isAccruing, setIsAccruing] = useState(false)
 
   const [selectedLeaveType, setSelectedLeaveType] = useState<LeaveTypeValue>('SICK')
@@ -120,41 +129,42 @@ export function TimeOffAdminClient() {
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false)
   const [transactionsError, setTransactionsError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const loadUsers = async () => {
-      setIsLoadingUsers(true)
-      setLoadError(null)
-      try {
-        const response = await fetch('/api/users')
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(errorText || 'Failed to load users')
-        }
-        const data: ManagedUser[] = await response.json()
-        const sorted = [...data].sort((a, b) => {
-          const aName = a.name ?? a.email
-          const bName = b.name ?? b.email
-          return aName.localeCompare(bName)
-        })
-        setUsers(sorted)
-        setSelectedUserId(prev => {
-          if (prev !== null && sorted.some(user => user.id === prev)) {
-            return prev
-          }
-          const regularUsers = sorted.filter(user => user.role === 'USER')
-          const fallbackPool = regularUsers.length > 0 ? regularUsers : sorted
-          return fallbackPool[0]?.id ?? null
-        })
-      } catch (error) {
-        console.error('Failed to fetch users for time off admin:', error)
-        setLoadError('Failed to load users. Please try again later.')
-      } finally {
-        setIsLoadingUsers(false)
+  const loadUsers = useCallback(async () => {
+    setIsLoadingUsers(true)
+    setLoadError(null)
+    try {
+      const response = await fetch('/api/users')
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || 'Failed to load users')
       }
+      const data: ManagedUser[] = await response.json()
+      const sorted = [...data].sort((a, b) => {
+        const aName = `${a.firstName || ''} ${a.lastName || ''}`.trim()
+        const bName = `${b.firstName || ''} ${b.lastName || ''}`.trim()
+        if (aName && bName) return aName.localeCompare(bName)
+        return (a.companyEmail || '').localeCompare(b.companyEmail || '')
+      })
+      setUsers(sorted)
+      setSelectedUserId(prev => {
+        if (prev !== null && sorted.some(user => user.id === prev)) {
+          return prev
+        }
+        const regularUsers = sorted.filter(user => user.role === 'USER')
+        const fallbackPool = regularUsers.length > 0 ? regularUsers : sorted
+        return fallbackPool[0]?.id ?? null
+      })
+    } catch (error) {
+      console.error('Failed to fetch users for time off admin:', error)
+      setLoadError('Failed to load users. Please try again later.')
+    } finally {
+      setIsLoadingUsers(false)
     }
-
-    void loadUsers()
   }, [])
+
+  useEffect(() => {
+    void loadUsers()
+  }, [loadUsers])
 
   const selectableUsers = useMemo(() => {
     if (users.length === 0) return []
@@ -162,10 +172,21 @@ export function TimeOffAdminClient() {
     return regularUsers.length > 0 ? regularUsers : users
   }, [users])
 
+  const usersNotGrantedSickLeave = useMemo(
+    () => users.filter(u => !u.initialSickLeaveGranted),
+    [users]
+  )
+
+  const selectedGrantUser = useMemo(
+    () => users.find(u => u.id === grantSickLeaveUserId),
+    [users, grantSickLeaveUserId]
+  )
+
   const userNameById = useMemo(() => {
     const map = new Map<number, string>()
     users.forEach(user => {
-      const label = user.name ? `${user.name} (${user.email})` : user.email
+      const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim()
+      const label = fullName ? `${fullName} (${user.companyEmail})` : user.companyEmail || ''
       map.set(user.id, label)
     })
     return map
@@ -300,13 +321,34 @@ export function TimeOffAdminClient() {
     }
   }
 
+  const handleGrantSickLeave = async (userId: number) => {
+    try {
+      const response = await fetch('/api/admin/time-off/grant-initial-sick-leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || 'Failed to grant sick leave');
+      }
+
+      toast.success('Initial sick leave granted successfully!');
+      void loadUsers(); // Refresh user list
+    } catch (error) {
+      console.error('Failed to grant sick leave:', error);
+      toast.error(error instanceof Error ? error.message : 'An unknown error occurred');
+    }
+  };
+
   return (
     <div className="container mx-auto space-y-6 p-4">
       <Card>
         <CardHeader>
-          <CardTitle>Monthly Accrual</CardTitle>
+          <CardTitle>Monthly Vacation Accrual</CardTitle>
           <CardDescription>
-            Run the automatic sick/vacation credit for a specific month.
+            Run the automatic vacation credit for a specific month. This applies only to users who have worked more than 10 days in the month.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
@@ -320,17 +362,6 @@ export function TimeOffAdminClient() {
               max="9999-12"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="accrual-amount">Days per leave type</Label>
-            <Input
-              id="accrual-amount"
-              type="number"
-              min={0.25}
-              step={0.5}
-              value={accrualAmount}
-              onChange={event => setAccrualAmount(Number(event.target.value))}
-            />
-          </div>
           <div className="flex items-end">
             <Button
               onClick={handleAccrualTrigger}
@@ -340,6 +371,52 @@ export function TimeOffAdminClient() {
               {isAccruing ? 'Running...' : 'Run Accrual'}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Initial Sick Leave Grant</CardTitle>
+          <CardDescription>
+            Grant 10 days of sick leave to an employee who has completed their probation period.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="grant-user-select">Employee</Label>
+            <Select
+              value={grantSickLeaveUserId ? String(grantSickLeaveUserId) : ''}
+              onValueChange={value => setGrantSickLeaveUserId(Number(value) || null)}
+            >
+              <SelectTrigger id="grant-user-select">
+                <SelectValue placeholder="Select an employee" />
+              </SelectTrigger>
+              <SelectContent>
+                {usersNotGrantedSickLeave.map(user => (
+                  <SelectItem key={user.id} value={String(user.id)}>
+                    {userNameById.get(user.id)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {selectedGrantUser && (
+            <div className="p-4 border rounded-md bg-muted/50">
+              <h4 className="font-medium mb-2">Selected Employee Details</h4>
+              <p className="text-sm"><strong>User:</strong> {userNameById.get(selectedGrantUser.id)}</p>
+              <p className="text-sm"><strong>Start Date:</strong> {selectedGrantUser.startDate ? new Date(selectedGrantUser.startDate).toLocaleDateString() : 'N/A'}</p>
+              <p className="text-sm"><strong>Probation End Date:</strong> {selectedGrantUser.startDate ? new Date(new Date(selectedGrantUser.startDate).setDate(new Date(selectedGrantUser.startDate).getDate() + 90)).toLocaleDateString() : 'N/A'}</p>
+              <p className="text-sm"><strong>Status:</strong> {new Date(selectedGrantUser.startDate || 0) <= ninetyDaysAgo ? <span className="text-green-600">Eligible for Grant</span> : <span className="text-orange-600">In Probation Period</span>}</p>
+            </div>
+          )}
+
+          <Button
+            onClick={() => grantSickLeaveUserId && handleGrantSickLeave(grantSickLeaveUserId)}
+            disabled={!grantSickLeaveUserId || !selectedGrantUser || new Date(selectedGrantUser.startDate || 0) > ninetyDaysAgo}
+          >
+            Grant 10 Days
+          </Button>
         </CardContent>
       </Card>
 
@@ -364,7 +441,7 @@ export function TimeOffAdminClient() {
                 <SelectContent>
                   {selectableUsers.map(user => (
                     <SelectItem key={user.id} value={String(user.id)}>
-                      {user.name ? `${user.name} (${user.email})` : user.email}
+                      {userNameById.get(user.id)}
                     </SelectItem>
                   ))}
                 </SelectContent>

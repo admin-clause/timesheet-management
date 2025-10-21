@@ -15,8 +15,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 type ManagedUser = {
   id: number;
-  name: string | null;
-  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  companyEmail: string | null;
   role: 'ADMIN' | 'USER';
 };
 
@@ -38,9 +39,10 @@ export function AdminTimesheetClient() {
         }
         const data: ManagedUser[] = await response.json();
         const sorted = [...data].sort((a, b) => {
-          const aName = a.name ?? a.email;
-          const bName = b.name ?? b.email;
-          return aName.localeCompare(bName);
+          const aName = `${a.firstName || ''} ${a.lastName || ''}`.trim();
+          const bName = `${b.firstName || ''} ${b.lastName || ''}`.trim();
+          if (aName && bName) return aName.localeCompare(bName);
+          return (a.companyEmail || '').localeCompare(b.companyEmail || '');
         });
         setUsers(sorted);
         setSelectedUserId(prev => {
@@ -96,7 +98,9 @@ export function AdminTimesheetClient() {
                 <SelectContent>
                   {selectableUsers.map(user => (
                     <SelectItem key={user.id} value={String(user.id)}>
-                      {user.name ? `${user.name} (${user.email})` : user.email}
+                      {`${user.firstName || ''} ${user.lastName || ''}`.trim()
+                        ? `${`${user.firstName || ''} ${user.lastName || ''}`.trim()} (${user.companyEmail})`
+                        : user.companyEmail}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -116,7 +120,7 @@ export function AdminTimesheetClient() {
         <div className="space-y-3">
           {selectedUser && (
             <p className="text-sm font-medium text-muted-foreground">
-              Editing as: {selectedUser.name ?? selectedUser.email}
+              Editing as: {`${selectedUser.firstName || ''} ${selectedUser.lastName || ''}`.trim() || selectedUser.companyEmail}
             </p>
           )}
           <TimesheetLoader targetUserId={selectedUserId} />

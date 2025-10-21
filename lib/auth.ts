@@ -1,4 +1,4 @@
-import { type NextAuthOptions } from 'next-auth';
+import { type NextAuthOptions, type Session } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { prisma } from '@/lib/prisma';
@@ -33,8 +33,9 @@ export const authOptions: NextAuthOptions = {
         if (isPasswordValid) {
           return {
             id: user.id.toString(),
-            email: user.email,
-            name: user.name,
+            email: user.companyEmail,
+            firstName: user.firstName,
+            lastName: user.lastName,
             role: user.role,
           };
         } else {
@@ -51,6 +52,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
       }
       return token;
     },
@@ -58,6 +61,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
+        session.user.firstName = token.firstName;
+        session.user.lastName = token.lastName;
       }
       return session;
     },
@@ -66,3 +71,7 @@ export const authOptions: NextAuthOptions = {
     signIn: '/auth/signin',
   },
 };
+
+export function isAdmin(session: Session | null): boolean {
+  return session?.user?.role === 'ADMIN';
+}

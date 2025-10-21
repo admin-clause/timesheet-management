@@ -24,7 +24,7 @@ export async function upsertTaskEntries(userId: number, entries: TaskEntryInput[
   const operations = entries.map(entry => {
     // The incoming entry from the client might have extra properties like `totalHours`.
     // We create a payload with only the fields that exist in the schema.
-    const { weekStartDate, projectId, taskName, hoursMon, hoursTue, hoursWed, hoursThu, hoursFri } = entry as any
+    const { weekStartDate, projectId, taskName, hoursMon, hoursTue, hoursWed, hoursThu, hoursFri } = entry
 
     const weekStartDateObj = new Date(weekStartDate)
 

@@ -47,14 +47,23 @@ model VerificationToken {
 // Application Models
 
 model User {
-  id                  Int       @id @default(autoincrement())
-  name                String?
-  email               String?   @unique
-  emailVerified       DateTime?
-  image               String?
-  password            String?
-  role                Role      @default(USER)
-  employmentStartDate DateTime?
+  id                      Int       @id @default(autoincrement())
+  firstName               String?
+  lastName                String?
+  companyEmail            String?   @unique
+  personalEmail           String?   @unique
+  phoneNumber             String?
+  employmentType          EmploymentType?
+  employeeStatus          EmployeeStatus?
+  fobNumber               String?
+  startDate               DateTime?
+  endDate                 DateTime?
+  midProbationDate        DateTime?
+  initialSickLeaveGranted Boolean   @default(false)
+  emailVerified           DateTime?
+  image                   String?
+  password                String?
+  role                    Role      @default(USER)
 
   accounts             Account[]
   sessions             Session[]
@@ -213,4 +222,16 @@ enum ProjectType {
   CLIENT_WORK
   INTERNAL_PRODUCT
   GENERAL
+}
+
+enum EmploymentType {
+  PERMANENT
+  CONTRACT
+}
+
+enum EmployeeStatus {
+  CITIZEN
+  PR
+  WORK_PERMIT
+  STUDENT_PERMIT
 }

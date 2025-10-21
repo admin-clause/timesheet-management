@@ -51,7 +51,8 @@ type AdminTimeOffRequest = {
     overrideBalance: boolean
   } | null
   requestedBy: {
-    name: string
+    firstName: string | null
+    lastName: string | null
   }
 }
 
@@ -247,7 +248,7 @@ export function AdminRequestQueue({ refreshTrigger = 0, onActionCompleted }: Pro
 
                   return (
                     <TableRow key={request.id}>
-                      <TableCell>{request.requestedBy.name}</TableCell>
+                      <TableCell>{`${request.requestedBy.firstName || ''} ${request.requestedBy.lastName || ''}`.trim()}</TableCell>
                       <TableCell>{formatLeaveLabel(details?.requestedType)}</TableCell>
                       <TableCell>{STATUS_LABELS[request.status]}</TableCell>
                       <TableCell>{period}</TableCell>

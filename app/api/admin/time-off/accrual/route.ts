@@ -1,6 +1,6 @@
-import { accrueMonthlyLeave } from '@/repositories/TimeOffRepository'
 import { authOptions } from '@/lib/auth'
 import { isAdmin } from '@/lib/utils'
+import { accrueMonthlyVacationLeave } from '@/repositories/TimeOffRepository'
 import { getServerSession } from 'next-auth/next'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -30,7 +30,9 @@ export async function POST(request: NextRequest) {
   }
 
   const now = new Date()
-  const targetMonth = body.month ? parseMonth(body.month) : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+  const targetMonth = body.month
+    ? parseMonth(body.month)
+    : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
   if (!targetMonth) {
     return new NextResponse('Bad Request: month must be formatted as YYYY-MM', { status: 400 })
   }
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await accrueMonthlyLeave({
+    const result = await accrueMonthlyVacationLeave({
       month: targetMonth,
       amountPerType: amount,
       recordedById: session?.user?.id ? Number(session.user.id) : undefined,

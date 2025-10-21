@@ -8,8 +8,6 @@ import {
   TimeOffTransaction,
 } from '@prisma/client'
 
-const ACCRUAL_LEAVE_TYPES: readonly LeaveType[] = [LeaveType.SICK, LeaveType.VACATION]
-
 const normalizeDate = (value: Date): Date => {
   const copy = new Date(value)
   copy.setHours(0, 0, 0, 0)
@@ -213,7 +211,7 @@ export type AccrualResult = {
   skipped: number
 }
 
-export async function accrueMonthlyLeave(options: {
+export async function accrueMonthlyVacationLeave(options: {
   month: Date
   recordedById?: number
   amountPerType?: number
@@ -225,23 +223,11 @@ export async function accrueMonthlyLeave(options: {
 
   const monthStart = startOfMonth(month)
   const monthEnd = endOfMonth(month)
-  const existingAccruals = await prisma.timeOffTransaction.findMany({
-    where: {
-      kind: TimeOffEntryKind.ACCRUAL,
-      effectiveDate: monthStart,
-      type: { in: ACCRUAL_LEAVE_TYPES as LeaveType[] },
-    },
-    select: {
-      userId: true,
-      type: true,
-    },
-  })
 
-  const alreadyAccrued = new Set(existingAccruals.map(entry => `${entry.userId}:${entry.type}`))
-
+  // 1. Find users who were employed during the month
   const users = await prisma.user.findMany({
     where: {
-      employmentStartDate: {
+      startDate: {
         lte: monthEnd,
       },
     },
@@ -250,42 +236,82 @@ export async function accrueMonthlyLeave(options: {
     },
   })
 
-  let created = 0
+  // 2. Find existing VACATION accruals for the month to avoid duplicates
+  const existingAccruals = await prisma.timeOffTransaction.findMany({
+    where: {
+      kind: TimeOffEntryKind.ACCRUAL,
+      effectiveDate: monthStart,
+      type: LeaveType.VACATION,
+      userId: { in: users.map(u => u.id) },
+    },
+    select: {
+      userId: true,
+    },
+  })
+  const alreadyAccrued = new Set(existingAccruals.map(e => e.userId))
 
+  let created = 0
+  let skipped = 0
+
+  // 3. For each user, check their worked days and accrue if eligible
   await prisma.$transaction(async tx => {
     for (const user of users) {
-      for (const type of ACCRUAL_LEAVE_TYPES) {
-        const key = `${user.id}:${type}`
-        if (alreadyAccrued.has(key)) {
-          continue
-        }
+      if (alreadyAccrued.has(user.id)) {
+        skipped++
+        continue
+      }
 
+      // 3a. Count worked days for the user in the given month
+      const taskEntries = await tx.taskEntry.findMany({
+        where: {
+          userId: user.id,
+          weekStartDate: {
+            // Query weeks that can overlap with the month
+            gte: new Date(monthStart.getFullYear(), monthStart.getMonth(), 1 - 6),
+            lte: monthEnd,
+          },
+        },
+      })
+
+      const workedDays = new Set<string>()
+      const dailyHoursFields: (keyof (typeof taskEntries)[0])[] = [
+        'hoursMon',
+        'hoursTue',
+        'hoursWed',
+        'hoursThu',
+        'hoursFri',
+      ]
+
+      for (const entry of taskEntries) {
+        for (let i = 0; i < dailyHoursFields.length; i++) {
+          const dayDate = new Date(entry.weekStartDate)
+          dayDate.setDate(dayDate.getDate() + i)
+
+          if (dayDate.getMonth() === monthStart.getMonth()) {
+            const hours = Number(entry[dailyHoursFields[i]])
+            if (hours > 0) {
+              workedDays.add(dayDate.toISOString().split('T')[0])
+            }
+          }
+        }
+      }
+
+      // 3b. Accrue if the user worked more than 10 days
+      if (workedDays.size > 10) {
         const delta = new Prisma.Decimal(amountPerType)
 
         await tx.timeOffBalance.upsert({
-          where: {
-            userId_type: {
-              userId: user.id,
-              type,
-            },
-          },
-          update: {
-            balance: { increment: delta },
-          },
-          create: {
-            userId: user.id,
-            type,
-            balance: delta,
-          },
+          where: { userId_type: { userId: user.id, type: LeaveType.VACATION } },
+          update: { balance: { increment: delta } },
+          create: { userId: user.id, type: LeaveType.VACATION, balance: delta },
         })
 
         await tx.timeOffTransaction.create({
           data: {
             userId: user.id,
             recordedById,
-            type,
-            requestedType:
-              type === LeaveType.SICK ? LeaveRequestType.SICK : LeaveRequestType.VACATION,
+            type: LeaveType.VACATION,
+            requestedType: LeaveRequestType.VACATION,
             kind: TimeOffEntryKind.ACCRUAL,
             days: delta,
             effectiveDate: monthStart,
@@ -294,19 +320,70 @@ export async function accrueMonthlyLeave(options: {
             note: `Monthly accrual for ${monthStart.toISOString().slice(0, 7)}`,
           },
         })
-
-        alreadyAccrued.add(key)
-        created += 1
+        created++
+      } else {
+        skipped++
       }
     }
   })
-
-  const totalPossible = users.length * ACCRUAL_LEAVE_TYPES.length
-  const skipped = totalPossible - created
 
   return {
     month: monthStart,
     created,
     skipped,
   }
+}
+
+/**
+ * Grants the initial 10 days of sick leave to a user, typically after their probation period.
+ * This is a one-time operation per user.
+ * @param userId The ID of the user to grant sick leave to.
+ * @param recordedById The ID of the admin performing the action.
+ * @returns A promise that resolves to the created TimeOffTransaction object.
+ * @throws Throws an error if the user has already been granted the initial sick leave.
+ */
+export async function grantInitialSickLeave(userId: number, recordedById: number) {
+  return prisma.$transaction(async tx => {
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { initialSickLeaveGranted: true },
+    })
+
+    if (!user) {
+      throw new Error('User not found')
+    }
+
+    if (user.initialSickLeaveGranted) {
+      throw new Error('Initial sick leave has already been granted to this user.')
+    }
+
+    const sickLeaveDays = new Prisma.Decimal(10)
+
+    // 1. Update the user's sick leave balance
+    await tx.timeOffBalance.upsert({
+      where: { userId_type: { userId, type: LeaveType.SICK } },
+      update: { balance: { increment: sickLeaveDays } },
+      create: { userId, type: LeaveType.SICK, balance: sickLeaveDays },
+    })
+
+    // 2. Mark the user as having received the grant
+    await tx.user.update({
+      where: { id: userId },
+      data: { initialSickLeaveGranted: true },
+    })
+
+    // 3. Create a transaction record for auditing
+    return tx.timeOffTransaction.create({
+      data: {
+        userId,
+        recordedById,
+        type: LeaveType.SICK,
+        requestedType: LeaveRequestType.SICK,
+        kind: TimeOffEntryKind.ADJUSTMENT, // Or a new kind e.g., INITIAL_GRANT
+        days: sickLeaveDays,
+        effectiveDate: new Date(),
+        note: 'Initial grant of 10 sick leave days after probation period.',
+      },
+    })
+  })
 }

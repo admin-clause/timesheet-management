@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { Role } from '@prisma/client';
+import { Role, EmploymentType, EmployeeStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 /**
@@ -13,7 +13,7 @@ export async function findUserByEmail(email: string) {
   try {
     return await prisma.user.findUnique({
       where: {
-        email: email,
+        companyEmail: email,
       },
     });
   } catch (error) {
@@ -39,15 +39,22 @@ export async function getAllUsers() {
 
 /**
  * Creates a new user. Hashes the password before saving.
- * @param data Object containing name, email, password (plain-text), and role.
+ * @param data Object containing user details.
  */
-export async function createUser(data: { name: string; email: string; password: string; role: Role }) {
+export async function createUser(data: {
+  firstName: string;
+  lastName: string;
+  companyEmail: string;
+  password: string;
+  role: Role;
+}) {
   try {
     const hashedPassword = await bcrypt.hash(data.password, 10);
     return await prisma.user.create({
       data: {
-        name: data.name,
-        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        companyEmail: data.companyEmail,
         password: hashedPassword,
         role: data.role,
       },
@@ -59,12 +66,28 @@ export async function createUser(data: { name: string; email: string; password: 
 }
 
 /**
- * Updates a user's details (name, email, role).
+ * Updates a user's details.
  * Does not handle password changes.
  * @param userId The ID of the user to update.
- * @param data Object containing optional name, email, and role.
+ * @param data Object containing fields to update.
  */
-export async function updateUser(userId: number, data: { name?: string; email?: string; role?: Role }) {
+export async function updateUser(
+  userId: number,
+  data: {
+    firstName?: string;
+    lastName?: string;
+    companyEmail?: string;
+    personalEmail?: string;
+    phoneNumber?: string;
+    employmentType?: EmploymentType;
+    employeeStatus?: EmployeeStatus;
+    fobNumber?: string;
+    startDate?: Date;
+    endDate?: Date;
+    midProbationDate?: Date;
+    role?: Role;
+  }
+) {
   try {
     return await prisma.user.update({
       where: { id: userId },

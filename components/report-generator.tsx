@@ -21,7 +21,9 @@ interface Project {
 }
 
 interface UserReport {
-  name: string
+  id: number;
+  firstName: string | null;
+  lastName: string | null;
   totalHours: number
   hoursByProject: { [key: string]: number }
 }
@@ -126,8 +128,8 @@ export function ReportGenerator() {
               </TableHeader>
               <TableBody>
                 {reportData.pivotData.users.map(user => (
-                  <TableRow key={user.name}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{`${user.firstName || ''} ${user.lastName || ''}`.trim()}</TableCell>
                     {reportData.pivotData.projects.map(project => (
                       <TableCell key={project.id} className="text-right">
                         {(user.hoursByProject[project.id] || 0).toFixed(1)}

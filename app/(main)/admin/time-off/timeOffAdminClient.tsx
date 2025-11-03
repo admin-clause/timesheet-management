@@ -244,7 +244,6 @@ export function TimeOffAdminClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           month: accrualMonth,
-          amountPerType: accrualAmount,
         }),
       })
 

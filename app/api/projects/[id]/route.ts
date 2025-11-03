@@ -4,14 +4,15 @@ import { updateProject } from '@/repositories/ProjectRepository'
 import { getServerSession } from 'next-auth'
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions)
 
   if (!isAdmin(session)) {
     return new NextResponse('Forbidden', { status: 403 })
   }
 
-  const projectId = parseInt(params.id, 10)
+  const { id } = await params
+  const projectId = parseInt(id, 10)
   if (isNaN(projectId)) {
     return new NextResponse('Bad Request: Invalid project ID.', { status: 400 })
   }

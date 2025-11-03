@@ -1,6 +1,9 @@
-import { getAllProjects } from '@/repositories/ProjectRepository'
+import { getAllProjects, createProject } from '@/repositories/ProjectRepository'
 import { ProjectStatus } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { isAdmin } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,10 +23,6 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Internal Server Error', { status: 500 })
   }
 }
-
-import { createProject } from '@/repositories/ProjectRepository'
-
-// ... (other imports)
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)

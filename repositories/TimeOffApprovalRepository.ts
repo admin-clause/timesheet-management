@@ -11,7 +11,9 @@ import {
   TimeOffTransaction,
 } from '@prisma/client'
 
-const mapRequestedToStored = (requested: LeaveRequestType): { storedType: LeaveType; affectsBalance: boolean } => {
+const mapRequestedToStored = (
+  requested: LeaveRequestType
+): { storedType: LeaveType; affectsBalance: boolean } => {
   if (requested === LeaveRequestType.SICK) {
     return { storedType: LeaveType.SICK, affectsBalance: true }
   }
@@ -33,7 +35,9 @@ export type CreateTimeOffRequestInput = {
   overrideBalance?: boolean
 }
 
-export async function createTimeOffRequest(input: CreateTimeOffRequestInput): Promise<ApprovalRequest> {
+export async function createTimeOffRequest(
+  input: CreateTimeOffRequestInput
+): Promise<ApprovalRequest> {
   const {
     requestedById,
     requestedType,
@@ -62,7 +66,8 @@ export async function createTimeOffRequest(input: CreateTimeOffRequestInput): Pr
             periodStart,
             periodEnd,
             totalDays: new Prisma.Decimal(totalDays),
-            partialStartDays: partialStartDays != null ? new Prisma.Decimal(partialStartDays) : undefined,
+            partialStartDays:
+              partialStartDays != null ? new Prisma.Decimal(partialStartDays) : undefined,
             partialEndDays: partialEndDays != null ? new Prisma.Decimal(partialEndDays) : undefined,
             overrideBalance: overrideBalance ?? false,
           },
@@ -77,7 +82,10 @@ export async function createTimeOffRequest(input: CreateTimeOffRequestInput): Pr
   })
 }
 
-export async function cancelTimeOffRequest(requestId: number, userId: number): Promise<ApprovalRequest> {
+export async function cancelTimeOffRequest(
+  requestId: number,
+  userId: number
+): Promise<ApprovalRequest> {
   return prisma.$transaction(async tx => {
     const existing = await tx.approvalRequest.findUnique({
       where: { id: requestId },
@@ -88,7 +96,7 @@ export async function cancelTimeOffRequest(requestId: number, userId: number): P
       throw new Error('Request not found')
     }
     if (existing.requestedById !== userId) {
-      throw new Error('Cannot cancel another user\'s request')
+      throw new Error("Cannot cancel another user's request")
     }
     if (existing.status !== ApprovalStatus.PENDING) {
       throw new Error('Only pending requests can be cancelled')
@@ -175,7 +183,9 @@ export async function approveTimeOffRequest(options: {
         requestedType: details.requestedType,
         type: storedType,
         kind: TimeOffEntryKind.USAGE,
-        days: affectsBalance ? new Prisma.Decimal(transactionData.days).neg() : new Prisma.Decimal(transactionData .days),
+        days: affectsBalance
+          ? new Prisma.Decimal(transactionData.days).neg()
+          : new Prisma.Decimal(transactionData.days),
         effectiveDate: new Date(details.periodStart),
         periodStart: new Date(details.periodStart),
         periodEnd: new Date(details.periodEnd),
@@ -278,11 +288,7 @@ export async function listApprovalRequests(filters: ApprovalFilters) {
     where,
     include: {
       timeOffDetails: true,
-      requestedBy: {
-        select: {
-          name: true,
-        },
-      },
+      requestedBy: true,
     },
     orderBy: {
       submittedAt: 'desc',

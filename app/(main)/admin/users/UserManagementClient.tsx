@@ -55,21 +55,35 @@ export function UserManagementClient() {
   // --- State Management ---
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  
+
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  
+
   // Form state consolidated into a single object
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    firstName: string;
+    lastName: string;
+    companyEmail: string;
+    personalEmail: string;
+    phoneNumber: string;
+    employmentType: EmploymentType | null;
+    employeeStatus: EmployeeStatus | null;
+    fobNumber: string;
+    startDate: string;
+    endDate: string;
+    midProbationDate: string;
+    password: string;
+    role: Role;
+  }>({
     firstName: '',
     lastName: '',
     companyEmail: '',
     personalEmail: '',
     phoneNumber: '',
-    employmentType: null as EmploymentType | null,
-    employeeStatus: null as EmployeeStatus | null,
+    employmentType: null,
+    employeeStatus: null,
     fobNumber: '',
     startDate: '',
     endDate: '',
@@ -112,7 +126,7 @@ export function UserManagementClient() {
         endDate: user.endDate || '',
         midProbationDate: user.midProbationDate || '',
         password: '',
-        role: user.role || Role.USER,
+        role: user.role,
       });
     } else {
       setFormData({
@@ -140,7 +154,12 @@ export function UserManagementClient() {
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      if (name === 'role') {
+        return { ...prev, [name]: value as Role };
+      }
+      return { ...prev, [name]: value };
+    });
   };
 
   const openDeleteDialog = (user: User) => {
@@ -322,7 +341,7 @@ export function UserManagementClient() {
             )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="role" className="text-right">Role</Label>
-              <Select value={formData.role} onValueChange={(value: Role) => handleSelectChange('role', value)}>
+              <Select value={formData.role} onValueChange={(value) => handleSelectChange('role', value)}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>

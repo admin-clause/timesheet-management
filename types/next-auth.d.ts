@@ -11,11 +11,15 @@ declare module 'next-auth' {
       role: string;
       firstName?: string | null
       lastName?: string | null
+      email?: string | null
     } & Omit<DefaultSession['user'], 'name'>
   }
 
   interface User {
     role: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
   }
 }
 
@@ -26,5 +30,6 @@ declare module 'next-auth/jwt' {
     role: string;
     firstName?: string | null;
     lastName?: string | null;
+    email?: string | null;
   }
 }

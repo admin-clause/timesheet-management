@@ -7,7 +7,7 @@ import { isAdmin } from '@/lib/auth'; // Assuming you have a utility like this
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
-  if (!session || !isAdmin(session)) {
+  if (!session || !session.user?.id || !isAdmin(session)) {
     return new NextResponse('Forbidden', { status: 403 });
   }
 
